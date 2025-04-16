@@ -1,6 +1,16 @@
 console.log("Hello user!")
 // crm-tooltip
 
+function FormatTime (time) {
+	var dH = Math.floor(Math.abs(time))
+	var dM = Math.round(Math.abs(time%1*60))
+	return dH + ":" + (dM < 10 ? '0' + dM : dM)
+}
+
+function showConsoleTime (prefix, time) {
+	var char = Math.sign(time) < 0 ? "-" : ""
+	console.log( prefix + ': ' + char + FormatTime(time) )
+}
 
 function waitForElm(selector) {
 	return new Promise(resolve => {
@@ -20,8 +30,26 @@ function waitForElm(selector) {
 	});
 }
 
-async function init (){
-	var element = await waitForElm('#MainDiv table')
+function SetTimeInTotalToolTip(tooltip, offline, online) {
+	var offlineSpan = document.createElement('span')
+	offlineSpan.setAttribute('style', 'color: #aaa; font-size: 0.8em;')
+	offlineSpan.textContent = ` (${FormatTime(Math.abs(offline))})`
+	tooltip.children[0].appendChild(offlineSpan)
+
+	var onlineSpan = document.createElement('span')
+	onlineSpan.setAttribute('style', 'color: #aaa; font-size: 0.8em;')
+	onlineSpan.textContent = ` (${FormatTime(Math.abs(online))})`
+	tooltip.children[1].appendChild(onlineSpan)
+}
+
+async function init() {
+	
+	
+	var element = await waitForElm('#MainDiv > table')
+	var workDaysTracker = await waitForElm('#MainDiv > .crm-tooltip')
+	var totalWorkDayToolTip = await waitForElm('#MainDiv > .crm-tooltip > div')
+
+
 	console.log(element)
 	
 	var offline = 0
@@ -39,24 +67,28 @@ async function init (){
 		offline += Number(element.children[0].innerText.replace(',','.'))
 		online += Number(element.children[1].innerText.replace(',','.'))
 	})
-	function showTime (prefix, time){
-		var char = Math.sign(time) < 0 ? "-" : ""
-		var dH = Math.floor(Math.abs(time))
-		var dM = Math.round(Math.abs(time%1*60))
-		console.log( prefix + ': ' + char + dH + ":" + (dM < 10 ? '0' + dM : dM) )
-	}
+	
 	var totalWorkTime = offline+online
 	var totalDelta = (totalWorkTime-worksDay*8)
+	var totalDeltaTimePrefix = totalDelta < 0 ? 'Недоработка' : 'Переработка'
 	var avrOffline = offline/worksDay
 	var avrOnline = online/worksDay
 
 
 	console.log(totalDelta)
-	showTime("Наработка общая", totalDelta)
-	showTime("Наработка офлайн", offline)
-	showTime("Наработка онлайн", online)
-	showTime("Среднее на работе", avrOffline)
-	showTime("Среднее удаленно", avrOnline)
+	showConsoleTime("Наработка общая", totalDelta)
+	showConsoleTime("Наработка офлайн", offline)
+	showConsoleTime("Наработка онлайн", online)
+	showConsoleTime("Среднее на работе", avrOffline)
+	showConsoleTime("Среднее удаленно", avrOnline)
+	
+	var totalDeltaElement = document.createElement('span')
+	totalDeltaElement.textContent = `(${totalDeltaTimePrefix}: ${FormatTime(Math.abs(totalDelta))})`
+	totalDeltaElement.setAttribute('style', 'color: #aaa; font-size: 0.8em;')
+
+	workDaysTracker.appendChild(totalDeltaElement)
+	SetTimeInTotalToolTip(totalWorkDayToolTip, offline, online)
+
 }
 
 init()
