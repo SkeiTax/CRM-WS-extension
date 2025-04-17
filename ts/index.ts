@@ -1,36 +1,35 @@
 console.log("Hello user!")
-// crm-tooltip
 
-function FormatTime (time) {
+function FormatTime (time: number) {
 	var dH = Math.floor(Math.abs(time))
 	var dM = Math.round(Math.abs(time%1*60))
 	return dH + ":" + (dM < 10 ? '0' + dM : dM)
 }
 
-function showConsoleTime (prefix, time) {
+function showConsoleTime (prefix: string, time: number) {
 	var char = Math.sign(time) < 0 ? "-" : ""
 	console.log( prefix + ': ' + char + FormatTime(time) )
 }
 
-function waitForElm(selector) {
-	return new Promise(resolve => {
-		if (document.querySelector(selector)) {
-			return resolve(document.querySelector(selector));
-		}
-		const observer = new MutationObserver(mutations => {
-			if (document.querySelector(selector)) {
-				resolve(document.querySelector(selector));
-				observer.disconnect();
-			}
-		});
-		observer.observe(document.body, {
-			childList: true,
-			subtree: true
-		});
-	});
+function waitForElm(selector: string): Promise<Element> {
+    return new Promise(resolve => {
+        if (document.querySelector(selector)) {
+            return resolve(document.querySelector(selector) as Element);
+        }
+        const observer = new MutationObserver(mutations => {
+            if (document.querySelector(selector)) {
+                resolve(document.querySelector(selector) as Element);
+                observer.disconnect();
+            }
+        });
+        observer.observe(document.body, {
+            childList: true,
+            subtree: true
+        });
+    });
 }
 
-function SetTimeInTotalToolTip(tooltip, offline, online) {
+function SetTimeInTotalToolTip(tooltip: HTMLDivElement, offline: number, online: number) {
 	var offlineSpan = document.createElement('span')
 	offlineSpan.setAttribute('style', 'color: #aaa; font-size: 0.8em;')
 	offlineSpan.textContent = ` (${FormatTime(Math.abs(offline))})`
@@ -45,27 +44,25 @@ function SetTimeInTotalToolTip(tooltip, offline, online) {
 async function init() {
 	
 	
-	var element = await waitForElm('#MainDiv > table')
+	var element = await waitForElm('#MainDiv > table') as HTMLTableElement
 	var workDaysTracker = await waitForElm('#MainDiv > .crm-tooltip')
-	var totalWorkDayToolTip = await waitForElm('#MainDiv > .crm-tooltip > div')
-
-
-	console.log(element)
+	var totalWorkDayToolTip = await waitForElm('#MainDiv > .crm-tooltip > div') as HTMLDivElement
 	
 	var offline = 0
 	var online = 0
-	var worksDay = Number(document.querySelector('#MainDiv').textContent.match(/(?<=из )\d+(?<!\))/)[0])
+	var matches = (document.querySelector('#MainDiv') as HTMLDivElement).textContent?.match(/(?<=из )\d+(?<!\))/)
+	var worksDay = Number(matches?.[0])
 	var days = document.querySelectorAll('td[name="day"] .crm-flex-container .crm-flex-child-middle:first-child')
 
 	days.forEach((element) => {
-		if (element.children[2].children.length>0 && element.children[2].children[0].innerText === 'X') 
+		if (element.children[2].children.length>0 && (element.children[2].children[0] as HTMLDivElement).innerText === 'X') 
 		{
 			worksDay--
 			return
 		}
 		
-		offline += Number(element.children[0].innerText.replace(',','.'))
-		online += Number(element.children[1].innerText.replace(',','.'))
+		offline += Number((element.children[0] as HTMLDivElement).innerText.replace(',','.'))
+		online += Number((element.children[1] as HTMLDivElement).innerText.replace(',','.'))
 	})
 	
 	var totalWorkTime = offline+online
@@ -75,16 +72,17 @@ async function init() {
 	var avrOnline = online/worksDay
 
 
-	console.log(totalDelta)
 	showConsoleTime("Наработка общая", totalDelta)
 	showConsoleTime("Наработка офлайн", offline)
 	showConsoleTime("Наработка онлайн", online)
 	showConsoleTime("Среднее на работе", avrOffline)
 	showConsoleTime("Среднее удаленно", avrOnline)
+
 	
 	var totalDeltaElement = document.createElement('span')
 	totalDeltaElement.textContent = `(${totalDeltaTimePrefix}: ${FormatTime(Math.abs(totalDelta))})`
 	totalDeltaElement.setAttribute('style', 'color: #aaa; font-size: 0.8em;')
+
 
 	workDaysTracker.appendChild(totalDeltaElement)
 	SetTimeInTotalToolTip(totalWorkDayToolTip, offline, online)

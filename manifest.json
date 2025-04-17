@@ -8,7 +8,7 @@
   "background":{},
   "content_scripts": [
     {
-      "js": ["main.js"],
+      "js": ["./js/index.js"],
       "matches": ["https://crm.dent-it.ru/*"]
     } 
   ]
