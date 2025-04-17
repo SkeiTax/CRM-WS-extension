@@ -34,6 +34,8 @@ async function init() {
 	var days = document.querySelectorAll('td[name="day"] .crm-flex-container .crm-flex-child-middle:first-child')
 
 	days.forEach((element) => {
+		
+
 		if (element.children[2].children.length>0 && (element.children[2].children[0] as HTMLDivElement).innerText === 'X') 
 		{
 			worksDay--
