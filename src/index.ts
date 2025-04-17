@@ -1,32 +1,11 @@
-console.log("Hello user!")
+import { waitForElm } from "./DOMUtils"
+import { FormatTime } from "./Formating"
 
-function FormatTime (time: number) {
-	var dH = Math.floor(Math.abs(time))
-	var dM = Math.round(Math.abs(time%1*60))
-	return dH + ":" + (dM < 10 ? '0' + dM : dM)
-}
+console.log("Hello user!")
 
 function showConsoleTime (prefix: string, time: number) {
 	var char = Math.sign(time) < 0 ? "-" : ""
 	console.log( prefix + ': ' + char + FormatTime(time) )
-}
-
-function waitForElm(selector: string): Promise<Element> {
-    return new Promise(resolve => {
-        if (document.querySelector(selector)) {
-            return resolve(document.querySelector(selector) as Element);
-        }
-        const observer = new MutationObserver(mutations => {
-            if (document.querySelector(selector)) {
-                resolve(document.querySelector(selector) as Element);
-                observer.disconnect();
-            }
-        });
-        observer.observe(document.body, {
-            childList: true,
-            subtree: true
-        });
-    });
 }
 
 function SetTimeInTotalToolTip(tooltip: HTMLDivElement, offline: number, online: number) {

@@ -5,11 +5,12 @@
   "icons": {},
   "action": {},
   "permissions": [],
-  "background":{},
+  "background": {},
   "content_scripts": [
     {
-      "js": ["./js/index.js"],
-      "matches": ["https://crm.dent-it.ru/*"]
+      "matches": ["https://crm.dent-it.ru/*"],
+      "js": ["dist/content.bundle.js"],
+      "run_at": "document_idle"
     } 
   ]
 }
