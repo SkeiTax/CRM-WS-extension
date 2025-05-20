@@ -8048,37 +8048,10 @@
       });
   }
 
-  function FormatTime(time) {
-      var dH = Math.floor(Math.abs(time));
-      var dM = Math.round(Math.abs(time % 1 * 60));
-      return dH + ":" + (dM < 10 ? '0' + dM : dM);
-  }
-
-  class DayInfo {
-      number;
-      offlineRanges = [];
-      onlineRanges = [];
-      constructor(number, offlineRanges, onlineRanges) {
-          this.number = number;
-          this.offlineRanges = offlineRanges;
-          this.onlineRanges = onlineRanges;
-      }
-      get offline() {
-          return this.ComputDurationFromRange(this.offlineRanges);
-      }
-      get online() {
-          return this.ComputDurationFromRange(this.onlineRanges);
-      }
-      get duration() {
-          return this.offline.plus(this.online);
-      }
-      ComputDurationFromRange(ranges) {
-          var duration = Duration.fromObject({});
-          ranges.forEach((e) => {
-              duration = duration.plus(e.diff ?? 0);
-          });
-          return duration;
-      }
+  function abs(duration) {
+      if (duration.toMillis() < 0)
+          return Duration.fromMillis(-duration.toMillis());
+      return duration;
   }
 
   class TimeRange {
@@ -8095,101 +8068,257 @@
       }
   }
 
-  console.log("Hello user!");
-  function showConsoleTime(prefix, time) {
-      var char = Math.sign(time) < 0 ? "-" : "";
-      console.log(prefix + ": " + char + FormatTime(time));
+  class DayInfo {
+      number;
+      offlineRanges = [];
+      onlineRanges = [];
+      isWeekend;
+      constructor(number, offlineRanges, onlineRanges, isWeekend) {
+          this.number = number;
+          this.offlineRanges = offlineRanges;
+          this.onlineRanges = onlineRanges;
+          this.isWeekend = isWeekend;
+      }
+      get offline() {
+          return this.ComputDurationFromRange(this.offlineRanges);
+      }
+      get online() {
+          return this.ComputDurationFromRange(this.onlineRanges);
+      }
+      get mergedRanges() {
+          var ranges = [];
+          var left = 0;
+          var right = 0;
+          var query = 0;
+          while (left != this.offlineRanges.length || right != this.onlineRanges.length) {
+              var range = new TimeRange();
+              while (left != this.offlineRanges.length || right != this.onlineRanges.length) {
+                  var leftRange = this.offlineRanges[left];
+                  var rightRange = this.onlineRanges[right];
+                  if (this.checkCollisionRange(range, leftRange))
+                      query = 0;
+                  else if (rightRange != undefined && this.checkCollisionRange(range, rightRange))
+                      query = 1;
+                  else
+                      break;
+                  if (query == 0) {
+                      //console.log("before left",left,this.offlineRanges[left], range)
+                      range = this.mergeRange(range, leftRange);
+                      left++;
+                      //console.log("after left",left,this.offlineRanges[left], range)
+                  }
+                  if (query == 1) {
+                      //console.log("brfore right",right,this.onlineRanges[right], range)
+                      range = this.mergeRange(range, rightRange);
+                      right++;
+                      //console.log("after right",right,this.onlineRanges[right], range)
+                  }
+              }
+              ranges.push(range);
+          }
+          //console.log (ranges)
+          return ranges;
+      }
+      checkCollisionRange(left, right) {
+          if (left === undefined || right === undefined)
+              return false;
+          if (left.begin === undefined && left.end === undefined ||
+              right.begin === undefined && right.end === undefined)
+              return true;
+          if (left.begin === undefined && right.begin === undefined ||
+              left.end === undefined && right.end === undefined)
+              return true;
+          if (left.begin === undefined && right.end === undefined &&
+              left.end !== undefined && right.begin !== undefined)
+              return left.end.diff(right.begin).toMillis() >= 0;
+          if (right.begin === undefined && left.end === undefined &&
+              right.end !== undefined && left.begin !== undefined)
+              return right.end.diff(left.begin).toMillis() >= 0;
+          if (left.begin !== undefined && right.end !== undefined &&
+              right.begin !== undefined && left.end !== undefined) {
+              return left.end.diff(right.begin).toMillis() >= 0 && left.begin.diff(right.end).toMillis() < 0 ||
+                  right.end.diff(left.begin).toMillis() >= 0 && right.begin.diff(left.end).toMillis() < 0;
+          }
+          return false;
+      }
+      mergeRange(left, right) {
+          var range = new TimeRange();
+          if (left === undefined && right === undefined)
+              return range;
+          if (left === undefined && right !== undefined)
+              return right;
+          if (right === undefined && left !== undefined)
+              return left;
+          if (left.begin === undefined && right.begin !== undefined)
+              range.begin = right.begin;
+          if (right.begin === undefined && left.begin !== undefined)
+              range.begin = left.begin;
+          if (right.begin !== undefined && left.begin !== undefined)
+              range.begin = left.begin.diff(right.begin).toMillis() < 0 ? left.begin : right.begin;
+          if (left.end === undefined && right.end !== undefined)
+              range.end = right.end;
+          if (right.end === undefined && left.end !== undefined)
+              range.end = left.end;
+          if (right.end !== undefined && left.end !== undefined)
+              range.end = left.end.diff(right.end).toMillis() > 0 ? left.end : right.end;
+          return range;
+      }
+      get duration() {
+          var duration = Duration.fromMillis(0);
+          this.mergedRanges.forEach(range => {
+              var _diff = range.diff;
+              if (_diff != undefined)
+                  duration = duration.plus(_diff);
+          });
+          return duration;
+      }
+      MinFromThreeTimeRange(f, s, t) {
+          var min = Math.min(f.begin?.toSeconds() ?? NaN, s.begin?.toSeconds() ?? NaN, t.begin?.toSeconds() ?? NaN);
+          if (isNaN(min))
+              return undefined;
+          return;
+      }
+      ComputDurationFromRange(ranges) {
+          var duration = Duration.fromObject({});
+          ranges.forEach((e) => {
+              duration = duration.plus(e.diff ?? 0);
+          });
+          return duration;
+      }
   }
-  function SetTimeInTotalToolTip(tooltip, offline, online) {
-      var offlineSpan = document.createElement("span");
-      offlineSpan.setAttribute("style", "color: #aaa; font-size: 0.8em;");
-      offlineSpan.textContent = ` (${FormatTime(Math.abs(offline))})`;
-      tooltip.children[0].appendChild(offlineSpan);
-      var onlineSpan = document.createElement("span");
-      onlineSpan.setAttribute("style", "color: #aaa; font-size: 0.8em;");
-      onlineSpan.textContent = ` (${FormatTime(Math.abs(online))})`;
-      tooltip.children[1].appendChild(onlineSpan);
+
+  class MonthInfo {
+      days = [];
+      _table;
+      filterDate;
+      get OfflineWorkDuration() {
+          return MonthInfo.ComputeDuration(this.days, (d) => { return d.offline; });
+      }
+      get OnlineWorkDuration() {
+          return MonthInfo.ComputeDuration(this.days, (d) => { return d.online; });
+      }
+      get TotalWorkDuration() {
+          return MonthInfo.ComputeDuration(this.days, (d) => { return d.duration; });
+      }
+      get WorkingDays() {
+          return this.days.filter(day => !day.isWeekend);
+      }
+      get DaysWorked() {
+          if (this.filterDate.month != DateTime.now().month)
+              return this.WorkingDays;
+          return this.WorkingDays.filter(day => day.number <= DateTime.now().day);
+      }
+      constructor(table, filterDate) {
+          this._table = table;
+          this.filterDate = filterDate;
+          Array.from(table.tBodies[0].rows).forEach((element, index) => {
+              //console.log('######## row ' + index + '########');
+              Array.from(element.children).forEach((e) => {
+                  if (e.children.length == 0)
+                      return;
+                  var element = e.children[0];
+                  var isWeekend = e.style.background == "rgb(255, 210, 173)";
+                  var cellContent = element.querySelector('a');
+                  if (cellContent == undefined)
+                      return;
+                  var cellToolTips = element.children.length > 1 ? element.children[1].children[0].querySelectorAll(".d-column") : undefined;
+                  var offlineRangesSource = cellToolTips != undefined && cellToolTips.length > 0
+                      ? Array.from(cellToolTips[0].children[1].children)
+                      : undefined;
+                  var onlineRangesSource = cellToolTips != undefined && cellToolTips.length > 1
+                      ? Array.from(cellToolTips[1].children[1].children)
+                      : undefined;
+                  var day = Number(cellContent.children[0]?.textContent ?? cellContent.textContent);
+                  var offlineRanges = new Array();
+                  var onlineRanges = new Array();
+                  var date = DateTime.fromObject({
+                      year: filterDate.year,
+                      month: filterDate.month,
+                      day: day
+                  });
+                  offlineRangesSource?.forEach((e) => { this.ConstructRanges(offlineRanges, e, date); });
+                  onlineRangesSource?.forEach((e) => { this.ConstructRanges(onlineRanges, e, date); });
+                  this.days.push(new DayInfo(day, offlineRanges, onlineRanges, isWeekend));
+              });
+          });
+          if (filterDate.month == DateTime.now().month) {
+              var cday = this.days.findLast((day) => day.number == DateTime.now().day);
+              if (cday != undefined) {
+                  var lastOnlineRange = cday.onlineRanges[cday.onlineRanges.length - 1];
+                  var lastOfflineRange = cday.offlineRanges[cday.offlineRanges.length - 1];
+                  if (lastOnlineRange !== undefined && lastOnlineRange.end === undefined)
+                      lastOnlineRange.end = DateTime.now();
+                  if (lastOfflineRange !== undefined && lastOfflineRange.end === undefined)
+                      lastOfflineRange.end = DateTime.now();
+              }
+          }
+      }
+      ConstructRanges(ranges, e, date) {
+          // hh:mm - hh:mm (?<hours>\d\d):(?<minutes>\d\d)
+          var timeRangeRegex = /(?<begin>\d\d:\d\d)?.* - (?<end>\d\d:\d\d)?.*/;
+          var timeHHMMRange = /(?<hour>\d\d):(?<minute>\d\d)/;
+          var range = e.children[0].textContent?.match(timeRangeRegex)?.groups;
+          var beginTime = range?.begin?.match(timeHHMMRange)?.groups;
+          if (beginTime != undefined) {
+              beginTime.year = date.year;
+              beginTime.month = date.month;
+              beginTime.day = date.day;
+          }
+          var begin = beginTime != undefined ? DateTime.fromObject(beginTime) : undefined;
+          var endTime = range?.end?.match(timeHHMMRange)?.groups;
+          if (endTime != undefined) {
+              endTime.year = date.year;
+              endTime.month = date.month;
+              endTime.day = date.day;
+          }
+          var end = endTime != undefined ? DateTime.fromObject(endTime) : undefined;
+          if (begin != undefined && end != undefined && end?.toSeconds() < begin?.toSeconds()) {
+              end = end.plus({ days: 1 });
+              console.log(begin.toString(), end.toString());
+          }
+          if (begin != undefined || end != undefined)
+              ranges.push(new TimeRange(begin, end));
+      }
+      static ComputeDuration(ranges, selector) {
+          var duration = Duration.fromMillis(0);
+          ranges.forEach((day) => {
+              duration = duration.plus(selector(day));
+          });
+          return duration;
+      }
+  }
+
+  console.log("Hello user!");
+  function GetFilterDate() {
+      return DateTime.fromObject({
+          year: Number(document.querySelector('#Year').value),
+          month: Number(document.querySelector('#Month').value)
+      });
   }
   async function init() {
       var table = (await waitForElm("#MainDiv > table"));
-      var rows = table.tBodies[0].rows;
-      var workDays = new Array;
-      Array.from(rows).forEach((element, index) => {
-          console.log('######## row ' + index + '########');
-          Array.from(element.children).forEach((e) => {
-              if (e.children.length == 0)
-                  return;
-              var element = e.children[0];
-              var cellContent = element.querySelector('a');
-              if (cellContent == undefined)
-                  return;
-              var cellToolTips = element.children.length > 1 ? element.children[1].children[0].querySelectorAll(".d-column") : undefined;
-              //console.log(cellToolTips)
-              var offlineRangesSource = cellToolTips != undefined && cellToolTips.length > 0 ? Array.from(cellToolTips[0].children[1].children) : undefined;
-              var onlineRangesSource = cellToolTips != undefined && cellToolTips.length > 1 ? Array.from(cellToolTips[1].children[1].children) : undefined;
-              //console.log(cellContent)
-              var number = Number(cellContent.children[0]?.textContent ?? cellContent.textContent);
-              var offlineRanges = new Array();
-              var onlineRanges = new Array();
-              var ConstructRanges = (ranges, e) => {
-                  var timeRangeRegex = /(?<begin>\d\d:\d\d) - (?<end>\d\d:\d\d)/;
-                  var timeHHMMRange = /(?<hour>\d\d)?.*:(?<minute>\d\d)/;
-                  var range = e.children[0].textContent?.match(timeRangeRegex)?.groups;
-                  var beginTime = range?.begin?.match(timeHHMMRange)?.groups;
-                  if (beginTime != undefined)
-                      beginTime.day = number;
-                  var begin = beginTime != undefined ? DateTime.fromObject(beginTime) : undefined;
-                  var endTime = range?.end?.match(timeHHMMRange)?.groups;
-                  if (endTime != undefined)
-                      endTime.day = number;
-                  var end = endTime != undefined ? DateTime.fromObject(endTime) : undefined;
-                  if (begin != undefined && end != undefined && end?.toSeconds() < begin?.toSeconds()) {
-                      end = end.plus({ days: 1 });
-                      console.log(begin.toString(), end.toString());
-                  }
-                  if (begin != undefined || end != undefined)
-                      ranges.push(new TimeRange(begin, end));
-              };
-              offlineRangesSource?.forEach((e) => { ConstructRanges(offlineRanges, e); });
-              onlineRangesSource?.forEach((e) => { ConstructRanges(onlineRanges, e); });
-              workDays.push(new DayInfo(number, offlineRanges, onlineRanges));
-              console.log(offlineRanges);
-              console.log(onlineRanges);
-          });
-      });
-      console.log(workDays);
-      console.log(workDays[0].offlineRanges[0].diff?.toFormat('hh:mm'));
+      var filterDate = GetFilterDate();
+      var monthInfo = new MonthInfo(table, filterDate);
+      // try {
+      // 	console.log(monthInfo.days)
+      // 	console.log(monthInfo.days[4])
+      // 	console.log(monthInfo.days[4].mergedRanges)
+      // 	console.log(monthInfo.days[4].duration.toFormat("hh:mm"))
+      // 	console.log(monthInfo.TotalWorkDuration.toFormat("hh:mm"))
+      // }catch(e){console.error(e)}
       var workDaysTracker = await waitForElm("#MainDiv > .crm-tooltip");
-      var totalWorkDayToolTip = (await waitForElm("#MainDiv > .crm-tooltip > div"));
-      var offline = 0;
-      var online = 0;
-      var matches = document.querySelector("#MainDiv").textContent?.match(/(?<=из )\d+(?<!\))/);
-      var worksDay = Number(matches?.[0]);
-      var days = document.querySelectorAll('td[name="day"] .crm-flex-container .crm-flex-child-middle:first-child');
-      days.forEach((element) => {
-          if (element.children[2].children.length > 0 &&
-              element.children[2].children[0].innerText === "X") {
-              worksDay--;
-              return;
-          }
-          offline += Number(element.children[0].innerText.replace(",", "."));
-          online += Number(element.children[1].innerText.replace(",", "."));
-      });
-      var totalWorkTime = offline + online;
-      var totalDelta = totalWorkTime - worksDay * 8;
-      var totalDeltaTimePrefix = totalDelta < 0 ? "Недоработка" : "Переработка";
-      var avrOffline = offline / worksDay;
-      var avrOnline = online / worksDay;
-      showConsoleTime("Наработка общая", totalDelta);
-      showConsoleTime("Наработка офлайн", offline);
-      showConsoleTime("Наработка онлайн", online);
-      showConsoleTime("Среднее на работе", avrOffline);
-      showConsoleTime("Среднее удаленно", avrOnline);
+      // var totalWorkDayToolTip = (await waitForElm(
+      // 	"#MainDiv > .crm-tooltip > div",
+      // )) as HTMLDivElement;
+      var worksDay = monthInfo.DaysWorked.length;
+      var totalDelta = monthInfo.TotalWorkDuration.minus(Duration.fromMillis(worksDay * 8 * 3600000));
+      var totalDeltaTimePrefix = totalDelta.toMillis() < 0 ? "Недоработка" : "Переработка";
+      console.log(totalDeltaTimePrefix, abs(totalDelta).toFormat("hh:mm"));
       var totalDeltaElement = document.createElement("span");
-      totalDeltaElement.textContent = `(${totalDeltaTimePrefix}: ${FormatTime(Math.abs(totalDelta))})`;
+      totalDeltaElement.textContent = `(${totalDeltaTimePrefix}: ${abs(totalDelta).toFormat("hh:mm")})`;
       totalDeltaElement.setAttribute("style", "color: #aaa; font-size: 0.8em;");
       workDaysTracker.appendChild(totalDeltaElement);
-      SetTimeInTotalToolTip(totalWorkDayToolTip, offline, online);
+      //SetTimeInTotalToolTip(totalWorkDayToolTip, offline, online);
   }
   init();
 
