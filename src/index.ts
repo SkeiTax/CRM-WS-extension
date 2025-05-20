@@ -2,6 +2,7 @@ import { DateTime, Duration } from "luxon";
 import { waitForElm } from "./DOMUtils";
 import { abs} from "./Formating";
 import { MonthInfo as MonthInfo } from "./Model/MonthInfo";
+import { Chart } from "chart.js/auto";
 
 console.log("Hello user!");
 
@@ -61,6 +62,33 @@ async function init() {
 
 	workDaysTracker.appendChild(totalDeltaElement);
 	//SetTimeInTotalToolTip(totalWorkDayToolTip, offline, online);
+
+	var canvas = document.createElement("canvas") as HTMLCanvasElement
+	(await waitForElm("#MainDiv")).append(canvas)
+
+	new Chart(canvas, {
+		type: 'line',
+		data:{
+			labels: monthInfo.days.map(day => `${day.number}.${filterDate.month}`) /* даты */,
+			datasets: [{
+				label: 'Начало рабочего дня',
+				data: monthInfo.days.map(day=>day.mergedRanges.filter(range=>range.begin != undefined)[0]),
+				fill: true,
+				borderColor: 'rgb(116, 158, 98)',
+				tension: 0.1
+			},
+			{
+				label: 'Конец рабочего дня',
+				data: monthInfo.days.map(day=>{
+					var ranges = day.mergedRanges.filter(range=>range.end != undefined)
+					return ranges[ranges.length-1]
+				}),
+				fill: true,
+				borderColor: 'rgb(197, 181, 93)',
+				tension: 0.1
+			}]
+		}
+	})
 }
 
 init();
