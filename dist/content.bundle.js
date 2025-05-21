@@ -8067,30 +8067,16 @@
               : undefined;
       }
   }
-  class Session {
-      source;
-      type;
-      ranges;
-      constructor(source, type, ranges) {
-          this.source = source;
-          this.type = type;
-          this.ranges = ranges;
-      }
-  }
 
   class DayInfo {
       number;
       date;
       sessions;
-      // public offlineRanges: TimeRange[] = [];
-      // public onlineRanges: TimeRange[] = [];
       isWeekend;
       constructor(date, sessions, isWeekend) {
           this.date = date;
           this.number = date.day;
           this.sessions = sessions;
-          // this.offlineRanges = offlineRanges;
-          // this.onlineRanges = onlineRanges;
           this.isWeekend = isWeekend;
       }
       // public get offline() {
@@ -8101,7 +8087,6 @@
       // }
       get mergedRanges() {
           var ranges = [];
-          //var currentSessionIndex = 0
           var indexInSessions = this.sessions.map(_ => 0);
           const isNotEnd = () => {
               return this.sessions.find((session, sessionIndex) => indexInSessions[sessionIndex] < session.ranges.length) !== undefined;
@@ -8124,7 +8109,7 @@
               }
               ranges.push(range);
           }
-          console.log(ranges);
+          //console.log (ranges)
           return ranges;
       }
       checkCollisionRange(left, right) {
@@ -8195,6 +8180,17 @@
       }
   }
 
+  class Session {
+      source;
+      type;
+      ranges;
+      constructor(source, type, ranges) {
+          this.source = source;
+          this.type = type;
+          this.ranges = ranges;
+      }
+  }
+
   class MonthInfo {
       days = [];
       _table;
@@ -8220,7 +8216,7 @@
           this._table = table;
           this.filterDate = filterDate;
           var dayCells = this._table.querySelectorAll('div.crm-tooltip');
-          console.log(dayCells);
+          //console.log(dayCells)
           Array.from(dayCells).forEach((element) => {
               if (element.children.length == 0)
                   return;
@@ -8229,14 +8225,13 @@
               var cellContent = element.querySelector('a');
               if (cellContent == undefined)
                   return;
-              //var cellToolTips = element.children.length > 1 ? element.children[1].children[0].querySelectorAll(".d-column") : undefined;
               var date = DateTime.fromObject({
                   year: filterDate.year,
                   month: filterDate.month,
                   day: Number(cellContent.children[0]?.textContent ?? cellContent.textContent),
               });
               var sessions = element.querySelectorAll('div.ai-start:has(div+div)');
-              console.log(sessions);
+              //console.log(sessions)
               var sessionsData = new Array();
               sessions.forEach(session => {
                   var source = session.children[0].textContent ?? "";
@@ -8280,7 +8275,7 @@
           var end = endTime != undefined ? DateTime.fromObject(endTime) : undefined;
           if (begin != undefined && end != undefined && end?.toSeconds() < begin?.toSeconds()) {
               end = end.plus({ days: 1 });
-              console.log(begin.toString(), end.toString());
+              //console.log(begin.toString(), end.toString());
           }
           if (begin != undefined || end != undefined)
               ranges.push(new TimeRange(begin, end));
@@ -23352,6 +23347,7 @@
   }
   async function init() {
       const crme = await CRME.Instance();
+      console.log(crme);
       window.addEventListener("message", (event) => {
           if (event.source !== window)
               return;
@@ -23362,7 +23358,6 @@
               window.postMessage({ type: "CRMEDump_RESPONSE", data: "ok" }, "*");
           }
       });
-      console.log(crme);
   }
   init();
 
