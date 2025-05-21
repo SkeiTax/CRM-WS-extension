@@ -1,19 +1,21 @@
-import { Duration } from "luxon";
+import { DateTime, Duration } from "luxon";
 import { TimeRange } from "./TimeRange";
 
 export class DayInfo {
   public number: number;
+  public date: DateTime;
   public offlineRanges: TimeRange[] = [];
   public onlineRanges: TimeRange[] = [];
   public isWeekend: boolean;
 
   public constructor(
-    number: number,
+    date: DateTime,
     offlineRanges: TimeRange[],
     onlineRanges: TimeRange[],
     isWeekend: boolean
   ) {
-    this.number = number;
+    this.date = date
+    this.number = date.day;
     this.offlineRanges = offlineRanges;
     this.onlineRanges = onlineRanges;
     this.isWeekend = isWeekend;

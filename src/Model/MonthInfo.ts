@@ -63,13 +63,13 @@ export class MonthInfo {
         var date = DateTime.fromObject({
           year: filterDate.year,
           month: filterDate.month,
-          day: day
+          day: day,
         })
 
         offlineRangesSource?.forEach((e) => { this.ConstructRanges(offlineRanges, e, date); });
         onlineRangesSource?.forEach((e) => { this.ConstructRanges(onlineRanges, e, date); });
 
-        this.days.push(new DayInfo(day, offlineRanges, onlineRanges, isWeekend));
+        this.days.push(new DayInfo(date, offlineRanges, onlineRanges, isWeekend));
       });
     });
 

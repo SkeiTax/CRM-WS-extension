@@ -3,7 +3,7 @@ import { waitForElm } from "./DOMUtils";
 import { abs} from "./Formating";
 import { MonthInfo as MonthInfo } from "./Model/MonthInfo";
 import { Chart } from "chart.js/auto";
-
+import 'chartjs-adapter-luxon';
 console.log("Hello user!");
 
 function SetTimeInTotalToolTip(
@@ -55,6 +55,7 @@ async function init() {
 	var totalDeltaTimePrefix = totalDelta.toMillis() < 0 ? "Недоработка" : "Переработка";
 
 	console.log(totalDeltaTimePrefix, abs(totalDelta).toFormat("hh:mm"));
+	console.log(DateTime.now().zone)
 
 	var totalDeltaElement = document.createElement("span");
 	totalDeltaElement.textContent = `(${totalDeltaTimePrefix}: ${abs(totalDelta).toFormat("hh:mm")})`;
@@ -63,30 +64,117 @@ async function init() {
 	workDaysTracker.appendChild(totalDeltaElement);
 	//SetTimeInTotalToolTip(totalWorkDayToolTip, offline, online);
 
-	var canvas = document.createElement("canvas") as HTMLCanvasElement
-	(await waitForElm("#MainDiv")).append(canvas)
+	var chartDiv = document.createElement("div") as HTMLDivElement;
+	chartDiv.setAttribute("style", "width: 800px; height: 400px;");
+	var canvas = document.createElement("canvas") as HTMLCanvasElement;
+	chartDiv.appendChild(canvas);
+
+	(await waitForElm("#MainDiv")).append(chartDiv)
+
+	function chartLabels(){
+		var data = monthInfo.days.map(day => `${day.number}.${filterDate.month}`) 
+		return data
+	}
+
+	function daysStartWork(){
+		var data = monthInfo.days.map(day=>{
+			var ranges = day.mergedRanges.filter(range=>range.begin != undefined)
+			return {
+				y: ranges.length == 0 
+					? undefined
+					: ranges[0].begin?.minus(day.date.toMillis()),
+				x: day.date?.toISO()
+			}
+		})
+		return data
+	}
+
+	function daysEndWork(){
+		var data = monthInfo.days.map(day=>{
+			var ranges = day.mergedRanges.filter(range=>range.end != undefined)
+			return {
+				y: ranges.length == 0 
+					? undefined
+					: ranges[ranges.length-1].end?.minus(day.date.toMillis()),
+				x: day.date?.toISO()
+			}
+		})
+		return data
+	}
+
+	var ctx = canvas.getContext('2d')!
+
+	const gradient = ctx.createLinearGradient(0, 0, 0, 400);  // вертикальный градиент
+	gradient.addColorStop(0, 'rgba(210, 180, 140, 0.75)');      // сверху — полупрозрачный зеленый
+	gradient.addColorStop(1, 'rgba(116, 158, 98, 0)');        // снизу — прозрачный
 
 	new Chart(canvas, {
 		type: 'line',
 		data:{
-			labels: monthInfo.days.map(day => `${day.number}.${filterDate.month}`) /* даты */,
 			datasets: [{
 				label: 'Начало рабочего дня',
-				data: monthInfo.days.map(day=>day.mergedRanges.filter(range=>range.begin != undefined)[0]),
-				fill: true,
+				data: daysStartWork(),
+				fill: "+1",
+				backgroundColor: gradient,
 				borderColor: 'rgb(116, 158, 98)',
-				tension: 0.1
+				tension: 0.2
 			},
 			{
 				label: 'Конец рабочего дня',
-				data: monthInfo.days.map(day=>{
-					var ranges = day.mergedRanges.filter(range=>range.end != undefined)
-					return ranges[ranges.length-1]
-				}),
-				fill: true,
-				borderColor: 'rgb(197, 181, 93)',
-				tension: 0.1
+				data: daysEndWork(),
+				fill: false,
+				borderColor: 'rgb(210, 180, 140)',
+				tension: 0.2
 			}]
+		},
+		options:{
+			scales: {
+				x: {
+					adapters: {
+						date: {
+							zone: "UTC",
+							setZone: true
+						},
+					},
+					type: 'time',
+					time: {
+						unit: 'day',
+						displayFormats: {
+							day: 'dd.MM'
+						},
+					},
+					title: {
+						display: true,
+						text: 'Дата'
+					}
+				},
+				y: {
+					adapters: {
+						date: {
+							zone: "UTC",
+							setZone: true
+						},
+					},
+					type: 'time',
+					time: {
+						unit: 'hour',
+						displayFormats: {
+							hour: 'HH:mm'
+						},
+						tooltipFormat: 'HH:mm',
+						// parser: function (value) {
+						// 	if (value === 0) return 0
+						// 	var time = value as DateTime
+						// 	if (time === undefined) return 0
+						// 	return time.toUTC().toMillis();
+						// }
+					},
+					title: {
+						display: true,
+						text: 'Время'
+					}
+				}
+			}
 		}
 	})
 }
