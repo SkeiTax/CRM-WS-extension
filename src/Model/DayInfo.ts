@@ -1,65 +1,58 @@
 import { DateTime, Duration } from "luxon";
 import { TimeRange } from "./TimeRange";
+import { Session } from './Session';
 
 export class DayInfo {
   public number: number;
   public date: DateTime;
-  public offlineRanges: TimeRange[] = [];
-  public onlineRanges: TimeRange[] = [];
+  public sessions: Session[];
   public isWeekend: boolean;
 
   public constructor(
     date: DateTime,
-    offlineRanges: TimeRange[],
-    onlineRanges: TimeRange[],
+    sessions: Session[],
     isWeekend: boolean
   ) {
     this.date = date
-    this.number = date.day;
-    this.offlineRanges = offlineRanges;
-    this.onlineRanges = onlineRanges;
-    this.isWeekend = isWeekend;
+    this.number = date.day
+    this.sessions = sessions
+    this.isWeekend = isWeekend
   }
 
-  public get offline() {
-    return this.ComputDurationFromRange(this.offlineRanges);
-  }
+  // public get offline() {
+  //   return this.ComputDurationFromRange(this.offlineRanges)
+  // }
 
-  public get online() {
-    return this.ComputDurationFromRange(this.onlineRanges);
-  }
+  // public get online() {
+  //   return this.ComputDurationFromRange(this.onlineRanges)
+  // }
 
   public get mergedRanges(): TimeRange[] {
     var ranges: TimeRange[] = []
 
-    var left = 0
-    var right = 0
+    var indexInSessions: number[] = this.sessions.map(_=>0);
 
-    var query = 0
+    const isNotEnd = ()=>{
+      return this.sessions.find((session, sessionIndex) => indexInSessions[sessionIndex] < session.ranges.length) !== undefined
+    }
 
-    while(left != this.offlineRanges.length || right != this.onlineRanges.length){
+    while(isNotEnd()){
       var range = new TimeRange()
+      var currentSessionIndex = 0
+      while(isNotEnd()) {
 
-      while(left != this.offlineRanges.length || right != this.onlineRanges.length) {
-        var leftRange = this.offlineRanges[left]
-        var rightRange = this.onlineRanges[right]
-
-        if (this.checkCollisionRange(range, leftRange)) query = 0
-        else if (rightRange != undefined && this.checkCollisionRange(range, rightRange)) query = 1
-        else break;
-
-        if (query == 0) {
-          //console.log("before left",left,this.offlineRanges[left], range)
-          range = this.mergeRange(range, leftRange)
-          left++
-          //console.log("after left",left,this.offlineRanges[left], range)
+        var i = currentSessionIndex
+        for(; i < this.sessions.length; i++){
+          if (this.checkCollisionRange(range, this.sessions[i].ranges[indexInSessions[i]]))
+          {
+            currentSessionIndex = i
+            break;
+          }
         }
-        if (query == 1) {
-          //console.log("brfore right",right,this.onlineRanges[right], range)
-          range = this.mergeRange(range, rightRange)
-          right++
-          //console.log("after right",right,this.onlineRanges[right], range)
-        }
+        if (i === this.sessions.length) break;
+
+        range = this.mergeRange(range, this.sessions[currentSessionIndex].ranges[indexInSessions[currentSessionIndex]])
+        indexInSessions[currentSessionIndex]++
       }
 
       ranges.push(range)

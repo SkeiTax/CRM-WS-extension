@@ -3,6 +3,7 @@ import { DayInfo } from "./DayInfo";
 import { Range } from "../Domain/Range";
 import { Time } from "../Domain/Time";
 import { TimeRange } from "./TimeRange";
+import { Session } from './Session';
 
 export class MonthInfo {
   public days: DayInfo[] = [];
@@ -10,12 +11,12 @@ export class MonthInfo {
   private filterDate: DateTime;
 
 
-  public get OfflineWorkDuration(): Duration {
-    return MonthInfo.ComputeDuration(this.days, (d) => { return d.offline });
-  }
-  public get OnlineWorkDuration(): Duration {
-    return MonthInfo.ComputeDuration(this.days, (d) => { return d.online });
-  }
+  // public get OfflineWorkDuration(): Duration {
+  //   return MonthInfo.ComputeDuration(this.days, (d) => { return d.offline });
+  // }
+  // public get OnlineWorkDuration(): Duration {
+  //   return MonthInfo.ComputeDuration(this.days, (d) => { return d.online });
+  // }
   public get TotalWorkDuration(): Duration {
     return MonthInfo.ComputeDuration(this.days, (d) => { return d.duration });
   }
@@ -34,61 +35,56 @@ export class MonthInfo {
   constructor(table: HTMLTableElement, filterDate: DateTime) {
     this._table = table;
     this.filterDate = filterDate;
-    Array.from(table.tBodies[0].rows).forEach((element, index) => {
-      //console.log('######## row ' + index + '########');
-      Array.from(element.children).forEach((e) => {
-        if (e.children.length == 0) return;
+    var dayCells = this._table.querySelectorAll('div.crm-tooltip')
+    //console.log(dayCells)
+    Array.from(dayCells).forEach((element) => {
+      if (element.children.length == 0) return;
 
-        var element = e.children[0] as HTMLDivElement;
+      //var element = e.children[0] as HTMLDivElement;
 
-        var isWeekend = (e as HTMLElement).style.background == "rgb(255, 210, 173)"
+      var isWeekend = (element.parentElement as HTMLElement).style.background == "rgb(255, 210, 173)"
 
-        var cellContent = element.querySelector('a') as unknown as HTMLLinkElement;
-        if (cellContent == undefined) return;
-        var cellToolTips = element.children.length > 1 ? element.children[1].children[0].querySelectorAll(".d-column") : undefined;
+      var cellContent = element.querySelector('a') as unknown as HTMLLinkElement;
+      if (cellContent == undefined) return;
 
+      var date = DateTime.fromObject({
+        year: filterDate.year,
+        month: filterDate.month,
+        day: Number(cellContent.children[0]?.textContent ?? cellContent.textContent),
+      })
 
-        var offlineRangesSource = cellToolTips != undefined && cellToolTips.length > 0
-          ? Array.from(cellToolTips[0].children[1].children) as HTMLDivElement[]
-          : undefined;
-        var onlineRangesSource = cellToolTips != undefined && cellToolTips.length > 1
-          ? Array.from(cellToolTips[1].children[1].children) as HTMLDivElement[]
-          : undefined;
+      var sessions = element.querySelectorAll('div.ai-start:has(div+div)')
+      //console.log(sessions)
 
-        var day = Number(cellContent.children[0]?.textContent ?? cellContent.textContent);
+      var sessionsData = new Array<Session>()
+      sessions.forEach(session => {
+        var source = session.children[0].textContent ?? ""
+        var type = session.children[1].children[0].getAttribute('title') ?? ""
+        var sessionSourceRanges = Array.from(session.children[1].children)
+        var sessionRanges = new Array<TimeRange>();
+        sessionSourceRanges.forEach((e) => { this.ConstructRanges(sessionRanges, e as HTMLElement, date); });
+        sessionsData.push(new Session(source, type, sessionRanges))
+      })
 
-        var offlineRanges = new Array<TimeRange>();
-        var onlineRanges = new Array<TimeRange>();
-
-        var date = DateTime.fromObject({
-          year: filterDate.year,
-          month: filterDate.month,
-          day: day,
-        })
-
-        offlineRangesSource?.forEach((e) => { this.ConstructRanges(offlineRanges, e, date); });
-        onlineRangesSource?.forEach((e) => { this.ConstructRanges(onlineRanges, e, date); });
-
-        this.days.push(new DayInfo(date, offlineRanges, onlineRanges, isWeekend));
-      });
+      this.days.push(new DayInfo(date, sessionsData, isWeekend));
     });
 
     if (filterDate.month == DateTime.now().month){
 
       var cday = this.days.findLast((day) => day.number == DateTime.now().day)
       if (cday != undefined){
-        var lastOnlineRange = cday.onlineRanges[cday.onlineRanges.length-1];
-        var lastOfflineRange = cday.offlineRanges[cday.offlineRanges.length-1]
-        if (lastOnlineRange !== undefined && lastOnlineRange.end === undefined)
-          lastOnlineRange.end = DateTime.now()
-        if (lastOfflineRange !== undefined && lastOfflineRange.end === undefined)
-          lastOfflineRange.end = DateTime.now()
+        cday.sessions.forEach(session => {
+          if (session.ranges[session.ranges.length - 1].end === undefined)
+          {
+            session.ranges[session.ranges.length - 1].end = DateTime.now()
+          }
+        })
       }
     }
   }
 
 
-  private ConstructRanges(ranges: Array<TimeRange>, e: HTMLDivElement, date: DateTime) {
+  private ConstructRanges(ranges: Array<TimeRange>, e: HTMLElement, date: DateTime) {
     // hh:mm - hh:mm (?<hours>\d\d):(?<minutes>\d\d)
     var timeRangeRegex = /(?<begin>\d\d:\d\d)?.* - (?<end>\d\d:\d\d)?.*/;
     var timeHHMMRange = /(?<hour>\d\d):(?<minute>\d\d)/;
@@ -112,7 +108,7 @@ export class MonthInfo {
 
     if (begin != undefined && end != undefined && end?.toSeconds() < begin?.toSeconds()) {
       end = end.plus({ days: 1 });
-      console.log(begin.toString(), end.toString());
+      //console.log(begin.toString(), end.toString());
     }
 
 

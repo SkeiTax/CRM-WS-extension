@@ -45,18 +45,7 @@ class CRME {
 		var monthInfo = new MonthInfo(table, filterDate)
 		CRME._instance = new CRME(monthInfo)
 
-		// try {
-		// 	console.log(monthInfo.days)
-		// 	console.log(monthInfo.days[4])
-		// 	console.log(monthInfo.days[4].mergedRanges)
-		// 	console.log(monthInfo.days[4].duration.toFormat("hh:mm"))
-		// 	console.log(monthInfo.TotalWorkDuration.toFormat("hh:mm"))
-		// }catch(e){console.error(e)}
-
 		var workDaysTracker = await waitForElm("#MainDiv > .crm-tooltip");
-		// var totalWorkDayToolTip = (await waitForElm(
-		// 	"#MainDiv > .crm-tooltip > div",
-		// )) as HTMLDivElement;
 
 		var worksDay = monthInfo.DaysWorked.length
 
@@ -72,7 +61,6 @@ class CRME {
 		totalDeltaElement.setAttribute("style", "color: #aaa; font-size: 0.8em;");
 
 		workDaysTracker.appendChild(totalDeltaElement);
-		//SetTimeInTotalToolTip(totalWorkDayToolTip, offline, online);
 
 		var chartDiv = document.createElement("div") as HTMLDivElement;
 		chartDiv.setAttribute("style", "width: 800px; height: 400px;");
@@ -142,7 +130,7 @@ class CRME {
 					x: {
 						adapters: {
 							date: {
-								zone: "UTC",
+								zone: "UTC+3",
 								setZone: true
 							},
 						},
@@ -172,12 +160,6 @@ class CRME {
 								hour: 'HH:mm'
 							},
 							tooltipFormat: 'HH:mm',
-							// parser: function (value) {
-							// 	if (value === 0) return 0
-							// 	var time = value as DateTime
-							// 	if (time === undefined) return 0
-							// 	return time.toUTC().toMillis();
-							// }
 						},
 						title: {
 							display: true,
@@ -197,6 +179,7 @@ class CRME {
 
 async function init(){
 	const crme = await CRME.Instance()
+	console.log(crme)
 
 	window.addEventListener("message", (event) => {
 	if (event.source !== window) return;
@@ -207,6 +190,7 @@ async function init(){
 		window.postMessage({ type: "CRMEDump_RESPONSE", data: "ok" }, "*");
 	}
 	});
+	
 }
 
 init()

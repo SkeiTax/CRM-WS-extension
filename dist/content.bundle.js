@@ -8067,58 +8067,64 @@
               : undefined;
       }
   }
+  class Session {
+      source;
+      type;
+      ranges;
+      constructor(source, type, ranges) {
+          this.source = source;
+          this.type = type;
+          this.ranges = ranges;
+      }
+  }
 
   class DayInfo {
       number;
       date;
-      offlineRanges = [];
-      onlineRanges = [];
+      sessions;
+      // public offlineRanges: TimeRange[] = [];
+      // public onlineRanges: TimeRange[] = [];
       isWeekend;
-      constructor(date, offlineRanges, onlineRanges, isWeekend) {
+      constructor(date, sessions, isWeekend) {
           this.date = date;
           this.number = date.day;
-          this.offlineRanges = offlineRanges;
-          this.onlineRanges = onlineRanges;
+          this.sessions = sessions;
+          // this.offlineRanges = offlineRanges;
+          // this.onlineRanges = onlineRanges;
           this.isWeekend = isWeekend;
       }
-      get offline() {
-          return this.ComputDurationFromRange(this.offlineRanges);
-      }
-      get online() {
-          return this.ComputDurationFromRange(this.onlineRanges);
-      }
+      // public get offline() {
+      //   return this.ComputDurationFromRange(this.offlineRanges)
+      // }
+      // public get online() {
+      //   return this.ComputDurationFromRange(this.onlineRanges)
+      // }
       get mergedRanges() {
           var ranges = [];
-          var left = 0;
-          var right = 0;
-          var query = 0;
-          while (left != this.offlineRanges.length || right != this.onlineRanges.length) {
+          //var currentSessionIndex = 0
+          var indexInSessions = this.sessions.map(_ => 0);
+          const isNotEnd = () => {
+              return this.sessions.find((session, sessionIndex) => indexInSessions[sessionIndex] < session.ranges.length) !== undefined;
+          };
+          while (isNotEnd()) {
               var range = new TimeRange();
-              while (left != this.offlineRanges.length || right != this.onlineRanges.length) {
-                  var leftRange = this.offlineRanges[left];
-                  var rightRange = this.onlineRanges[right];
-                  if (this.checkCollisionRange(range, leftRange))
-                      query = 0;
-                  else if (rightRange != undefined && this.checkCollisionRange(range, rightRange))
-                      query = 1;
-                  else
+              var currentSessionIndex = 0;
+              while (isNotEnd()) {
+                  var i = currentSessionIndex;
+                  for (; i < this.sessions.length; i++) {
+                      if (this.checkCollisionRange(range, this.sessions[i].ranges[indexInSessions[i]])) {
+                          currentSessionIndex = i;
+                          break;
+                      }
+                  }
+                  if (i === this.sessions.length)
                       break;
-                  if (query == 0) {
-                      //console.log("before left",left,this.offlineRanges[left], range)
-                      range = this.mergeRange(range, leftRange);
-                      left++;
-                      //console.log("after left",left,this.offlineRanges[left], range)
-                  }
-                  if (query == 1) {
-                      //console.log("brfore right",right,this.onlineRanges[right], range)
-                      range = this.mergeRange(range, rightRange);
-                      right++;
-                      //console.log("after right",right,this.onlineRanges[right], range)
-                  }
+                  range = this.mergeRange(range, this.sessions[currentSessionIndex].ranges[indexInSessions[currentSessionIndex]]);
+                  indexInSessions[currentSessionIndex]++;
               }
               ranges.push(range);
           }
-          //console.log (ranges)
+          console.log(ranges);
           return ranges;
       }
       checkCollisionRange(left, right) {
@@ -8193,12 +8199,12 @@
       days = [];
       _table;
       filterDate;
-      get OfflineWorkDuration() {
-          return MonthInfo.ComputeDuration(this.days, (d) => { return d.offline; });
-      }
-      get OnlineWorkDuration() {
-          return MonthInfo.ComputeDuration(this.days, (d) => { return d.online; });
-      }
+      // public get OfflineWorkDuration(): Duration {
+      //   return MonthInfo.ComputeDuration(this.days, (d) => { return d.offline });
+      // }
+      // public get OnlineWorkDuration(): Duration {
+      //   return MonthInfo.ComputeDuration(this.days, (d) => { return d.online });
+      // }
       get TotalWorkDuration() {
           return MonthInfo.ComputeDuration(this.days, (d) => { return d.duration; });
       }
@@ -8213,45 +8219,43 @@
       constructor(table, filterDate) {
           this._table = table;
           this.filterDate = filterDate;
-          Array.from(table.tBodies[0].rows).forEach((element, index) => {
-              //console.log('######## row ' + index + '########');
-              Array.from(element.children).forEach((e) => {
-                  if (e.children.length == 0)
-                      return;
-                  var element = e.children[0];
-                  var isWeekend = e.style.background == "rgb(255, 210, 173)";
-                  var cellContent = element.querySelector('a');
-                  if (cellContent == undefined)
-                      return;
-                  var cellToolTips = element.children.length > 1 ? element.children[1].children[0].querySelectorAll(".d-column") : undefined;
-                  var offlineRangesSource = cellToolTips != undefined && cellToolTips.length > 0
-                      ? Array.from(cellToolTips[0].children[1].children)
-                      : undefined;
-                  var onlineRangesSource = cellToolTips != undefined && cellToolTips.length > 1
-                      ? Array.from(cellToolTips[1].children[1].children)
-                      : undefined;
-                  var day = Number(cellContent.children[0]?.textContent ?? cellContent.textContent);
-                  var offlineRanges = new Array();
-                  var onlineRanges = new Array();
-                  var date = DateTime.fromObject({
-                      year: filterDate.year,
-                      month: filterDate.month,
-                      day: day,
-                  });
-                  offlineRangesSource?.forEach((e) => { this.ConstructRanges(offlineRanges, e, date); });
-                  onlineRangesSource?.forEach((e) => { this.ConstructRanges(onlineRanges, e, date); });
-                  this.days.push(new DayInfo(date, offlineRanges, onlineRanges, isWeekend));
+          var dayCells = this._table.querySelectorAll('div.crm-tooltip');
+          console.log(dayCells);
+          Array.from(dayCells).forEach((element) => {
+              if (element.children.length == 0)
+                  return;
+              //var element = e.children[0] as HTMLDivElement;
+              var isWeekend = element.parentElement.style.background == "rgb(255, 210, 173)";
+              var cellContent = element.querySelector('a');
+              if (cellContent == undefined)
+                  return;
+              //var cellToolTips = element.children.length > 1 ? element.children[1].children[0].querySelectorAll(".d-column") : undefined;
+              var date = DateTime.fromObject({
+                  year: filterDate.year,
+                  month: filterDate.month,
+                  day: Number(cellContent.children[0]?.textContent ?? cellContent.textContent),
               });
+              var sessions = element.querySelectorAll('div.ai-start:has(div+div)');
+              console.log(sessions);
+              var sessionsData = new Array();
+              sessions.forEach(session => {
+                  var source = session.children[0].textContent ?? "";
+                  var type = session.children[1].children[0].getAttribute('title') ?? "";
+                  var sessionSourceRanges = Array.from(session.children[1].children);
+                  var sessionRanges = new Array();
+                  sessionSourceRanges.forEach((e) => { this.ConstructRanges(sessionRanges, e, date); });
+                  sessionsData.push(new Session(source, type, sessionRanges));
+              });
+              this.days.push(new DayInfo(date, sessionsData, isWeekend));
           });
           if (filterDate.month == DateTime.now().month) {
               var cday = this.days.findLast((day) => day.number == DateTime.now().day);
               if (cday != undefined) {
-                  var lastOnlineRange = cday.onlineRanges[cday.onlineRanges.length - 1];
-                  var lastOfflineRange = cday.offlineRanges[cday.offlineRanges.length - 1];
-                  if (lastOnlineRange !== undefined && lastOnlineRange.end === undefined)
-                      lastOnlineRange.end = DateTime.now();
-                  if (lastOfflineRange !== undefined && lastOfflineRange.end === undefined)
-                      lastOfflineRange.end = DateTime.now();
+                  cday.sessions.forEach(session => {
+                      if (session.ranges[session.ranges.length - 1].end === undefined) {
+                          session.ranges[session.ranges.length - 1].end = DateTime.now();
+                      }
+                  });
               }
           }
       }
@@ -23234,17 +23238,7 @@
           var filterDate = GetFilterDate();
           var monthInfo = new MonthInfo(table, filterDate);
           CRME._instance = new CRME(monthInfo);
-          // try {
-          // 	console.log(monthInfo.days)
-          // 	console.log(monthInfo.days[4])
-          // 	console.log(monthInfo.days[4].mergedRanges)
-          // 	console.log(monthInfo.days[4].duration.toFormat("hh:mm"))
-          // 	console.log(monthInfo.TotalWorkDuration.toFormat("hh:mm"))
-          // }catch(e){console.error(e)}
           var workDaysTracker = await waitForElm("#MainDiv > .crm-tooltip");
-          // var totalWorkDayToolTip = (await waitForElm(
-          // 	"#MainDiv > .crm-tooltip > div",
-          // )) as HTMLDivElement;
           var worksDay = monthInfo.DaysWorked.length;
           var totalDelta = monthInfo.TotalWorkDuration.minus(Duration.fromMillis(worksDay * 8 * 3600000));
           var totalDeltaTimePrefix = totalDelta.toMillis() < 0 ? "Недоработка" : "Переработка";
@@ -23254,7 +23248,6 @@
           totalDeltaElement.textContent = `(${totalDeltaTimePrefix}: ${abs(totalDelta).toFormat("hh:mm")})`;
           totalDeltaElement.setAttribute("style", "color: #aaa; font-size: 0.8em;");
           workDaysTracker.appendChild(totalDeltaElement);
-          //SetTimeInTotalToolTip(totalWorkDayToolTip, offline, online);
           var chartDiv = document.createElement("div");
           chartDiv.setAttribute("style", "width: 800px; height: 400px;");
           var canvas = document.createElement("canvas");
@@ -23312,7 +23305,7 @@
                       x: {
                           adapters: {
                               date: {
-                                  zone: "UTC",
+                                  zone: "UTC+3",
                                   setZone: true
                               },
                           },
@@ -23342,12 +23335,6 @@
                                   hour: 'HH:mm'
                               },
                               tooltipFormat: 'HH:mm',
-                              // parser: function (value) {
-                              // 	if (value === 0) return 0
-                              // 	var time = value as DateTime
-                              // 	if (time === undefined) return 0
-                              // 	return time.toUTC().toMillis();
-                              // }
                           },
                           title: {
                               display: true,
@@ -23375,6 +23362,7 @@
               window.postMessage({ type: "CRMEDump_RESPONSE", data: "ok" }, "*");
           }
       });
+      console.log(crme);
   }
   init();
 
