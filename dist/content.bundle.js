@@ -8062,7 +8062,7 @@
           this.end = end;
       }
       get diff() {
-          return (this.begin != undefined && this.end != undefined)
+          return this.begin != undefined && this.end != undefined
               ? this.end.diff(this.begin)
               : undefined;
       }
@@ -8087,6 +8087,66 @@
           }
           return 0;
       }
+      /**
+       * Проверка двух диапазонов на пересечение
+       */
+      static RangeCollision(left, right) {
+          if (left === undefined || right === undefined)
+              return false;
+          if ((left.begin === undefined && left.end === undefined) ||
+              (right.begin === undefined && right.end === undefined))
+              return true;
+          if ((left.begin === undefined && right.begin === undefined) ||
+              (left.end === undefined && right.end === undefined))
+              return true;
+          if (left.begin === undefined &&
+              right.end === undefined &&
+              left.end !== undefined &&
+              right.begin !== undefined)
+              return left.end.diff(right.begin).toMillis() >= 0;
+          if (right.begin === undefined &&
+              left.end === undefined &&
+              right.end !== undefined &&
+              left.begin !== undefined)
+              return right.end.diff(left.begin).toMillis() >= 0;
+          if (left.begin !== undefined &&
+              right.end !== undefined &&
+              right.begin !== undefined &&
+              left.end !== undefined) {
+              return ((left.end.diff(right.begin).toMillis() >= 0 &&
+                  left.begin.diff(right.end).toMillis() < 0) ||
+                  (right.end.diff(left.begin).toMillis() >= 0 &&
+                      right.begin.diff(left.end).toMillis() < 0));
+          }
+          return false;
+      }
+      /**
+       * Объединение двух диапазонов
+       */
+      static Merge(left, right) {
+          var range = new TimeRange();
+          if (left === undefined && right === undefined)
+              return range;
+          if (left === undefined && right !== undefined)
+              return right;
+          if (right === undefined && left !== undefined)
+              return left;
+          if (left.begin === undefined && right.begin !== undefined)
+              range.begin = right.begin;
+          if (right.begin === undefined && left.begin !== undefined)
+              range.begin = left.begin;
+          if (right.begin !== undefined && left.begin !== undefined)
+              range.begin =
+                  left.begin.diff(right.begin).toMillis() < 0 ? left.begin : right.begin;
+          if (left.end === undefined && right.end !== undefined)
+              range.end = right.end;
+          if (right.end === undefined && left.end !== undefined)
+              range.end = left.end;
+          if (right.end !== undefined && left.end !== undefined)
+              range.end =
+                  left.end.diff(right.end).toMillis() > 0 ? left.end : right.end;
+          return range;
+      }
   }
 
   class DayInfo {
@@ -8108,18 +8168,41 @@
       // public get online() {
       //   return this.ComputDurationFromRange(this.onlineRanges)
       // }
+      _margedRanges;
+      /**
+       * Объедененные диапазоны работы всех сессий
+       */
       get mergedRanges() {
+          if (this._margedRanges !== undefined)
+              return this._margedRanges;
+          this._margedRanges = this.margeRanges();
+          return this._margedRanges;
+      }
+      _duration;
+      /**
+       * Продолжительность рабочего дня
+       */
+      get duration() {
+          if (this._duration !== undefined)
+              return this._duration;
+          this._duration = this.colculateDuration();
+          return this._duration;
+      }
+      /**
+       * Объединение всех сессий в одину последовательность диапазонов работы
+       */
+      margeRanges() {
           var ranges = [];
-          var indexInSessions = this.sessions.map(_ => 0);
+          var indexInSessions = this.sessions.map((_) => 0);
           const isNotEnd = () => {
-              return this.sessions.find((session, sessionIndex) => indexInSessions[sessionIndex] < session.ranges.length) !== undefined;
+              return (this.sessions.find((session, sessionIndex) => indexInSessions[sessionIndex] < session.ranges.length) !== undefined);
           };
           const findStartSessionIndex = () => {
               if (this.sessions.length < 2)
                   return 0;
               var startRanges = this.sessions.map((session, sessionIndex) => session.ranges[indexInSessions[sessionIndex]]);
               var sortedRanges = Array.from(startRanges).sort(TimeRange.compare);
-              return startRanges.findIndex(range => sortedRanges[0]);
+              return startRanges.findIndex((range) => (sortedRanges[0]));
           };
           while (isNotEnd()) {
               var range = new TimeRange();
@@ -8127,86 +8210,48 @@
               while (isNotEnd()) {
                   var i = currentSessionIndex;
                   for (; i < this.sessions.length; i++) {
-                      if (this.checkCollisionRange(range, this.sessions[i].ranges[indexInSessions[i]])) {
+                      if (TimeRange.RangeCollision(range, this.sessions[i].ranges[indexInSessions[i]])) {
                           currentSessionIndex = i;
                           break;
                       }
                   }
                   if (i === this.sessions.length)
                       break;
-                  range = this.mergeRange(range, this.sessions[currentSessionIndex].ranges[indexInSessions[currentSessionIndex]]);
+                  range = TimeRange.Merge(range, this.sessions[currentSessionIndex].ranges[indexInSessions[currentSessionIndex]]);
                   indexInSessions[currentSessionIndex]++;
               }
               ranges.push(range);
           }
-          //console.log (ranges)
-          return ranges;
+          return ranges.filter(range => range.begin !== undefined && range.end !== undefined);
       }
-      checkCollisionRange(left, right) {
-          if (left === undefined || right === undefined)
-              return false;
-          if (left.begin === undefined && left.end === undefined ||
-              right.begin === undefined && right.end === undefined)
-              return true;
-          if (left.begin === undefined && right.begin === undefined ||
-              left.end === undefined && right.end === undefined)
-              return true;
-          if (left.begin === undefined && right.end === undefined &&
-              left.end !== undefined && right.begin !== undefined)
-              return left.end.diff(right.begin).toMillis() >= 0;
-          if (right.begin === undefined && left.end === undefined &&
-              right.end !== undefined && left.begin !== undefined)
-              return right.end.diff(left.begin).toMillis() >= 0;
-          if (left.begin !== undefined && right.end !== undefined &&
-              right.begin !== undefined && left.end !== undefined) {
-              return left.end.diff(right.begin).toMillis() >= 0 && left.begin.diff(right.end).toMillis() < 0 ||
-                  right.end.diff(left.begin).toMillis() >= 0 && right.begin.diff(left.end).toMillis() < 0;
-          }
-          return false;
-      }
-      mergeRange(left, right) {
-          var range = new TimeRange();
-          if (left === undefined && right === undefined)
-              return range;
-          if (left === undefined && right !== undefined)
-              return right;
-          if (right === undefined && left !== undefined)
-              return left;
-          if (left.begin === undefined && right.begin !== undefined)
-              range.begin = right.begin;
-          if (right.begin === undefined && left.begin !== undefined)
-              range.begin = left.begin;
-          if (right.begin !== undefined && left.begin !== undefined)
-              range.begin = left.begin.diff(right.begin).toMillis() < 0 ? left.begin : right.begin;
-          if (left.end === undefined && right.end !== undefined)
-              range.end = right.end;
-          if (right.end === undefined && left.end !== undefined)
-              range.end = left.end;
-          if (right.end !== undefined && left.end !== undefined)
-              range.end = left.end.diff(right.end).toMillis() > 0 ? left.end : right.end;
-          return range;
-      }
-      get duration() {
+      /**
+       * Расчет продолжительности рабочего дня
+       */
+      colculateDuration() {
           var duration = Duration.fromMillis(0);
-          this.mergedRanges.forEach(range => {
+          this.mergedRanges.forEach((range) => {
               var _diff = range.diff;
               if (_diff != undefined)
                   duration = duration.plus(_diff);
           });
-          return duration.minus(this.breakDuration);
-      }
-      MinFromThreeTimeRange(f, s, t) {
-          var min = Math.min(f.begin?.toSeconds() ?? NaN, s.begin?.toSeconds() ?? NaN, t.begin?.toSeconds() ?? NaN);
-          if (isNaN(min))
-              return undefined;
-          return;
-      }
-      ComputDurationFromRange(ranges) {
-          var duration = Duration.fromObject({});
-          ranges.forEach((e) => {
-              duration = duration.plus(e.diff ?? 0);
-          });
+          if (this.takeBreak())
+              duration = duration.minus(this.breakDuration);
           return duration;
+      }
+      /**
+       * Проверяет нужно ли учитывать перервыв при расчетах продолжительности
+       */
+      takeBreak() {
+          for (var i = 0; i < this.mergedRanges.length - 1; i++) {
+              var current = this.mergedRanges[i];
+              var next = this.mergedRanges[i + 1];
+              if (current.end === undefined || next.begin === undefined)
+                  continue;
+              var breakDuration = current.end?.diff(next.begin);
+              if (breakDuration.minus(this.breakDuration).toMillis() > 0)
+                  return true;
+          }
+          return false;
       }
   }
 
@@ -8231,28 +8276,46 @@
       // public get OnlineWorkDuration(): Duration {
       //   return MonthInfo.ComputeDuration(this.days, (d) => { return d.online });
       // }
+      /**
+       * Общая продолжительность работы в месяце
+       */
       get TotalWorkDuration() {
-          return MonthInfo.ComputeDuration(this.days, (d) => { return d.duration; });
+          return MonthInfo.ComputeDuration(this.days, (d) => {
+              return d.duration;
+          });
       }
+      /**
+       * Рабочие дни в месяце
+       */
       get WorkingDays() {
-          return this.days.filter(day => !day.isWeekend);
+          return this.days.filter((day) => !day.isWeekend);
       }
-      get DaysWorked() {
+      /**
+       * Рабочие дни в месяце до сегодняшнего дня
+       */
+      get WorkingDaysToday() {
           if (this.filterDate.month != DateTime.now().month)
               return this.WorkingDays;
-          return this.WorkingDays.filter(day => day.number <= DateTime.now().day);
+          return this.days.filter((day) => !day.isWeekend && day.date.diff(DateTime.now()).toMillis() < 0);
+      }
+      /**
+       * Отработанные дни
+       */
+      get DaysWorked() {
+          return this.days.filter((day) => day.duration.toMillis() != 0);
       }
       constructor(table, filterDate) {
           this._table = table;
           this.filterDate = filterDate;
-          var dayCells = this._table.querySelectorAll('div.crm-tooltip');
+          var dayCells = this._table.querySelectorAll("div.crm-tooltip");
           //console.log(dayCells)
           Array.from(dayCells).forEach((element) => {
               if (element.children.length == 0)
                   return;
               //var element = e.children[0] as HTMLDivElement;
-              var isWeekend = element.parentElement.style.background == "rgb(255, 210, 173)";
-              var cellContent = element.querySelector('a');
+              var isWeekend = element.parentElement.style.background ==
+                  "rgb(255, 210, 173)";
+              var cellContent = element.querySelector("a");
               if (cellContent == undefined)
                   return;
               var date = DateTime.fromObject({
@@ -8260,30 +8323,35 @@
                   month: filterDate.month,
                   day: Number(cellContent.children[0]?.textContent ?? cellContent.textContent),
               });
-              var sessions = element.querySelectorAll('div.ai-start:has(div+div)');
+              var sessions = element.querySelectorAll("div.ai-start:has(div+div)");
               //console.log(sessions)
               var sessionsData = new Array();
-              sessions.forEach(session => {
+              sessions.forEach((session) => {
                   var source = session.children[0].textContent ?? "";
-                  var type = session.children[1].children[0].getAttribute('title') ?? "";
+                  var type = session.children[1].children[0].getAttribute("title") ?? "";
                   var sessionSourceRanges = Array.from(session.children[1].children);
                   var sessionRanges = new Array();
-                  sessionSourceRanges.forEach((e) => { this.ConstructRanges(sessionRanges, e, date); });
+                  sessionSourceRanges.forEach((e) => {
+                      this.ConstructRanges(sessionRanges, e, date);
+                  });
                   sessionsData.push(new Session(source, type, sessionRanges));
               });
               var breakDuration = Duration.fromMillis(0);
-              var divs = element.querySelectorAll('div.ai-start');
-              if (divs.length > 0 && (divs[divs.length - 1].textContent?.includes('Обед:') ?? false)) {
-                  var groups = divs[divs.length - 1].textContent.match(/\d+/g)?.groups;
-                  var minutes = groups !== undefined ? Number(groups[0]) : 0;
-                  breakDuration = Duration.fromObject({ minute: minutes });
+              var divs = element.querySelectorAll("div.ai-start");
+              if (divs.length > 0 &&
+                  (divs[divs.length - 1].textContent?.includes("Обед:") ??
+                      false)) {
+                  var match = divs[divs.length - 1].textContent.match(/\d+/g)?.[0];
+                  if (match === null)
+                      return;
+                  breakDuration = Duration.fromObject({ minute: Number(match) });
               }
               this.days.push(new DayInfo(date, sessionsData, breakDuration, isWeekend));
           });
           if (filterDate.month == DateTime.now().month) {
               var cday = this.days.findLast((day) => day.number == DateTime.now().day);
               if (cday != undefined) {
-                  cday.sessions.forEach(session => {
+                  cday.sessions.forEach((session) => {
                       if (session.ranges[session.ranges.length - 1].end === undefined) {
                           session.ranges[session.ranges.length - 1].end = DateTime.now();
                       }
@@ -8295,8 +8363,10 @@
           // hh:mm - hh:mm (?<hours>\d\d):(?<minutes>\d\d)
           var timeRangeRegex = /(?<begin>\d\d:\d\d)?.* - (?<end>\d\d:\d\d)?.*/;
           var timeHHMMRange = /(?<hour>\d\d):(?<minute>\d\d)/;
-          var range = e.children[0].textContent?.match(timeRangeRegex)?.groups;
-          var beginTime = range?.begin?.match(timeHHMMRange)?.groups;
+          var range = e.children[0].textContent?.match(timeRangeRegex)
+              ?.groups;
+          var beginTime = range?.begin?.match(timeHHMMRange)
+              ?.groups;
           if (beginTime != undefined) {
               beginTime.year = date.year;
               beginTime.month = date.month;
@@ -8310,7 +8380,9 @@
               endTime.day = date.day;
           }
           var end = endTime != undefined ? DateTime.fromObject(endTime) : undefined;
-          if (begin != undefined && end != undefined && end?.toSeconds() < begin?.toSeconds()) {
+          if (begin != undefined &&
+              end != undefined &&
+              end?.toSeconds() < begin?.toSeconds()) {
               end = end.plus({ days: 1 });
               //console.log(begin.toString(), end.toString());
           }
@@ -23250,29 +23322,174 @@
     }
   });
 
+  class DrowChart {
+      canvas;
+      daysDate;
+      gradient;
+      static halfDayOffset = { hour: 12 };
+      constructor(canvas, daysData) {
+          this.canvas = canvas;
+          this.daysDate = daysData;
+          var ctx = this.canvas.getContext("2d");
+          this.gradient = ctx.createLinearGradient(0, 0, 0, 400); // вертикальный градиент
+          this.gradient.addColorStop(0, "rgba(210, 180, 140, 0.75)"); // сверху — полупрозрачный зеленый
+          this.gradient.addColorStop(1, "rgba(116, 158, 98, 0)"); // снизу — прозрачный
+      }
+      daysStartWork() {
+          var data = this.daysDate.map((day) => {
+              var first = undefined;
+              var ranges = day.mergedRanges;
+              for (var i = 0; i < ranges.length; i++) {
+                  if (ranges[i].begin !== undefined) {
+                      first = ranges[i];
+                      break;
+                  }
+              }
+              return {
+                  y: first?.begin?.minus(day.date.toMillis()),
+                  x: day.date.plus(DrowChart.halfDayOffset).toISO(),
+              };
+          });
+          return data;
+      }
+      daysEndWork() {
+          var data = this.daysDate.map((day) => {
+              var last = undefined;
+              var ranges = day.mergedRanges;
+              for (var i = ranges.length - 1; i >= 0; i--) {
+                  if (ranges[i].end !== undefined) {
+                      last = ranges[i];
+                      break;
+                  }
+              }
+              return {
+                  y: last?.end?.minus(day.date.toMillis()),
+                  x: day.date.plus(DrowChart.halfDayOffset).toISO(),
+              };
+          });
+          return data;
+      }
+      recomendedStartWork() {
+          var data = this.daysDate.map((day) => {
+              return {
+                  y: day.date.plus({ hour: 10 }).minus(day.date.toMillis()),
+                  x: day.date.plus(DrowChart.halfDayOffset).toISO(),
+              };
+          });
+          return data;
+      }
+      recomendedEndWork() {
+          var data = this.daysDate.map((day) => {
+              return {
+                  y: day.date.plus({ hour: 17 }).minus(day.date.toMillis()),
+                  x: day.date.plus(DrowChart.halfDayOffset).toISO(),
+              };
+          });
+          return data;
+      }
+      drow() {
+          new Chart(this.canvas, {
+              type: "line",
+              data: {
+                  datasets: [
+                      {
+                          label: "Рекомендуемое начало рабочего дня",
+                          data: this.recomendedStartWork(),
+                          borderColor: "rgba(100, 196, 58, 0.3)",
+                          pointRadius: 0,
+                          pointHoverRadius: 0,
+                          pointHitRadius: 0,
+                      },
+                      {
+                          label: "Рекомендуемый конец рабочего дня",
+                          data: this.recomendedEndWork(),
+                          borderColor: "rgba(212, 136, 35, 0.3)",
+                          pointRadius: 0,
+                          pointHoverRadius: 0,
+                          pointHitRadius: 0,
+                      },
+                      {
+                          label: "Начало рабочего дня",
+                          data: this.daysStartWork(),
+                          fill: "+1",
+                          backgroundColor: this.gradient,
+                          borderColor: "rgb(116, 158, 98)",
+                          tension: 0.2,
+                      },
+                      {
+                          label: "Конец рабочего дня",
+                          data: this.daysEndWork(),
+                          fill: false,
+                          borderColor: "rgb(210, 180, 140)",
+                          tension: 0.2,
+                      },
+                  ],
+              },
+              options: {
+                  scales: {
+                      x: {
+                          adapters: {
+                              date: {
+                                  zone: "UTC+3",
+                                  setZone: true,
+                              },
+                          },
+                          type: "time",
+                          time: {
+                              unit: "day",
+                              displayFormats: {
+                                  day: "dd.MM",
+                              },
+                          },
+                          title: {
+                              display: true,
+                              text: "Дата",
+                          },
+                      },
+                      y: {
+                          adapters: {
+                              date: {
+                                  zone: "UTC",
+                                  setZone: true,
+                              },
+                          },
+                          type: "time",
+                          time: {
+                              unit: "hour",
+                              displayFormats: {
+                                  hour: "HH:mm",
+                              },
+                              tooltipFormat: "HH:mm",
+                          },
+                          title: {
+                              display: true,
+                              text: "Время",
+                          },
+                      },
+                  },
+              },
+          });
+      }
+  }
+
   console.log("Hello user!");
   function GetFilterDate() {
       return DateTime.fromObject({
-          year: Number(document.querySelector('#Year').value),
-          month: Number(document.querySelector('#Month').value)
+          year: Number(document.querySelector("#Year").value),
+          month: Number(document.querySelector("#Month").value),
       });
   }
   class CRME {
-      static _instance;
       monthInfo;
-      constructor(monthInfo) {
-          this.monthInfo = monthInfo;
-      }
-      static async Instance() {
-          if (CRME._instance !== undefined)
-              return CRME._instance;
+      constructor() { }
+      async init() {
           var table = (await waitForElm("#MainDiv > table"));
           var filterDate = GetFilterDate();
-          var monthInfo = new MonthInfo(table, filterDate);
-          CRME._instance = new CRME(monthInfo);
+          this.monthInfo = new MonthInfo(table, filterDate);
           var workDaysTracker = await waitForElm("#MainDiv > .crm-tooltip");
-          var worksDay = monthInfo.DaysWorked.length;
-          var totalDelta = monthInfo.TotalWorkDuration.minus(Duration.fromMillis(worksDay * 8 * 3600000));
+          var workingDaysCount = this.monthInfo.WorkingDaysToday.length;
+          var expectedOperating = Duration.fromObject({ hour: workingDaysCount * 8 });
+          var totalDelta = this.monthInfo.TotalWorkDuration.minus(expectedOperating);
           var totalDeltaTimePrefix = totalDelta.toMillis() < 0 ? "Недоработка" : "Переработка";
           console.log(totalDeltaTimePrefix, abs(totalDelta).toFormat("hh:mm"));
           console.log(DateTime.now().zone);
@@ -23285,105 +23502,23 @@
           var canvas = document.createElement("canvas");
           chartDiv.appendChild(canvas);
           (await waitForElm("#MainDiv")).append(chartDiv);
-          function daysStartWork() {
-              var data = monthInfo.days.map(day => {
-                  var ranges = day.mergedRanges.filter(range => range.begin != undefined);
-                  return {
-                      y: ranges.length == 0
-                          ? undefined
-                          : ranges[0].begin?.minus(day.date.toMillis()),
-                      x: day.date?.toISO()
-                  };
-              });
-              return data;
-          }
-          function daysEndWork() {
-              var data = monthInfo.days.map(day => {
-                  var ranges = day.mergedRanges.filter(range => range.end != undefined);
-                  return {
-                      y: ranges.length == 0
-                          ? undefined
-                          : ranges[ranges.length - 1].end?.minus(day.date.toMillis()),
-                      x: day.date?.toISO()
-                  };
-              });
-              return data;
-          }
-          var ctx = canvas.getContext('2d');
-          const gradient = ctx.createLinearGradient(0, 0, 0, 400); // вертикальный градиент
-          gradient.addColorStop(0, 'rgba(210, 180, 140, 0.75)'); // сверху — полупрозрачный зеленый
-          gradient.addColorStop(1, 'rgba(116, 158, 98, 0)'); // снизу — прозрачный
-          new Chart(canvas, {
-              type: 'line',
-              data: {
-                  datasets: [{
-                          label: 'Начало рабочего дня',
-                          data: daysStartWork(),
-                          fill: "+1",
-                          backgroundColor: gradient,
-                          borderColor: 'rgb(116, 158, 98)',
-                          tension: 0.2
-                      },
-                      {
-                          label: 'Конец рабочего дня',
-                          data: daysEndWork(),
-                          fill: false,
-                          borderColor: 'rgb(210, 180, 140)',
-                          tension: 0.2
-                      }]
-              },
-              options: {
-                  scales: {
-                      x: {
-                          adapters: {
-                              date: {
-                                  zone: "UTC+3",
-                                  setZone: true
-                              },
-                          },
-                          type: 'time',
-                          time: {
-                              unit: 'day',
-                              displayFormats: {
-                                  day: 'dd.MM'
-                              },
-                          },
-                          title: {
-                              display: true,
-                              text: 'Дата'
-                          }
-                      },
-                      y: {
-                          adapters: {
-                              date: {
-                                  zone: "UTC",
-                                  setZone: true
-                              },
-                          },
-                          type: 'time',
-                          time: {
-                              unit: 'hour',
-                              displayFormats: {
-                                  hour: 'HH:mm'
-                              },
-                              tooltipFormat: 'HH:mm',
-                          },
-                          title: {
-                              display: true,
-                              text: 'Время'
-                          }
-                      }
-                  }
-              }
-          });
-          return CRME._instance;
+          new DrowChart(canvas, this.monthInfo.days).drow();
       }
       dump = () => {
           return JSON.stringify(this.monthInfo);
       };
   }
   async function init() {
-      const crme = await CRME.Instance();
+      const filter = (await waitForElm("#filtersRow"));
+      var crme = new CRME();
+      filter.addEventListener("change", (event) => {
+          const target = event.target;
+          if (target && target.tagName === "SELECT") {
+              crme.init();
+              console.log(crme);
+          }
+      });
+      crme.init();
       console.log(crme);
       window.addEventListener("message", (event) => {
           if (event.source !== window)
