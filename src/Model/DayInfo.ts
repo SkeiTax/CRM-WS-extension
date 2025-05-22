@@ -8,15 +8,18 @@ export class DayInfo {
   public date: DateTime;
   public sessions: Session[];
   public isWeekend: boolean;
+  public breakDuration: Duration;
 
   public constructor(
     date: DateTime,
     sessions: Session[],
+    breakDuration: Duration,
     isWeekend: boolean
   ) {
     this.date = date
     this.number = date.day
     this.sessions = sessions
+    this.breakDuration = breakDuration
     this.isWeekend = isWeekend
   }
 
@@ -132,7 +135,7 @@ export class DayInfo {
         duration = duration.plus(_diff)
     })
 
-    return duration;
+    return duration.minus(this.breakDuration);
   }
 
   private MinFromThreeTimeRange(f: TimeRange, s: TimeRange, t: TimeRange){

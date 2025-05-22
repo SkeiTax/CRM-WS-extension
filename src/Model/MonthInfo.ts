@@ -66,7 +66,17 @@ export class MonthInfo {
         sessionsData.push(new Session(source, type, sessionRanges))
       })
 
-      this.days.push(new DayInfo(date, sessionsData, isWeekend));
+      var breakDuration = Duration.fromMillis(0);
+
+      var divs = element.querySelectorAll('div.ai-start')
+      if (divs.length > 0 && ((divs[divs.length-1] as HTMLElement).textContent?.includes('Обед:') ?? false))
+      {
+        var groups = ((divs[divs.length-1] as HTMLElement).textContent as string).match(/\d+/g)?.groups
+        var minutes = groups !== undefined ? Number(groups[0]) : 0
+        breakDuration = Duration.fromObject({minute: minutes});
+      }
+
+      this.days.push(new DayInfo(date, sessionsData, breakDuration, isWeekend));
     });
 
     if (filterDate.month == DateTime.now().month){
