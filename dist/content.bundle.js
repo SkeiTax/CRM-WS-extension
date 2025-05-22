@@ -8066,6 +8066,27 @@
               ? this.end.diff(this.begin)
               : undefined;
       }
+      static compare(leftRange, rightRange) {
+          if (leftRange.begin !== undefined && rightRange.begin !== undefined) {
+              return Math.sign(leftRange.begin.diff(rightRange.begin).toMillis());
+          }
+          if (leftRange.begin === undefined && rightRange.begin !== undefined) {
+              return 1;
+          }
+          if (leftRange.begin !== undefined && rightRange.begin === undefined) {
+              return -1;
+          }
+          if (leftRange.begin === undefined && rightRange.begin === undefined) {
+              if (leftRange.end === undefined)
+                  return 1;
+              if (rightRange.end === undefined)
+                  return -1;
+              if (leftRange.end === undefined && rightRange.end === undefined)
+                  return 0;
+              return Math.sign(leftRange.end.diff(rightRange.end).toMillis());
+          }
+          return 0;
+      }
   }
 
   class DayInfo {
@@ -8091,9 +8112,16 @@
           const isNotEnd = () => {
               return this.sessions.find((session, sessionIndex) => indexInSessions[sessionIndex] < session.ranges.length) !== undefined;
           };
+          const findStartSessionIndex = () => {
+              if (this.sessions.length < 2)
+                  return 0;
+              var startRanges = this.sessions.map((session, sessionIndex) => session.ranges[indexInSessions[sessionIndex]]);
+              var sortedRanges = Array.from(startRanges).sort(TimeRange.compare);
+              return startRanges.findIndex(range => sortedRanges[0]);
+          };
           while (isNotEnd()) {
               var range = new TimeRange();
-              var currentSessionIndex = 0;
+              var currentSessionIndex = findStartSessionIndex();
               while (isNotEnd()) {
                   var i = currentSessionIndex;
                   for (; i < this.sessions.length; i++) {

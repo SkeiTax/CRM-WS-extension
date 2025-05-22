@@ -1,6 +1,7 @@
 import { DateTime, Duration } from "luxon";
 import { TimeRange } from "./TimeRange";
 import { Session } from './Session';
+import { Time } from "../Domain/Time";
 
 export class DayInfo {
   public number: number;
@@ -32,13 +33,20 @@ export class DayInfo {
 
     var indexInSessions: number[] = this.sessions.map(_=>0);
 
-    const isNotEnd = ()=>{
+    const isNotEnd = () => {
       return this.sessions.find((session, sessionIndex) => indexInSessions[sessionIndex] < session.ranges.length) !== undefined
+    }
+
+    const findStartSessionIndex = () => {
+      if (this.sessions.length < 2) return 0
+      var startRanges = this.sessions.map((session, sessionIndex) => session.ranges[indexInSessions[sessionIndex]])
+      var sortedRanges = Array.from(startRanges).sort(TimeRange.compare)
+      return startRanges.findIndex(range => range = sortedRanges[0])
     }
 
     while(isNotEnd()){
       var range = new TimeRange()
-      var currentSessionIndex = 0
+      var currentSessionIndex = findStartSessionIndex()
       while(isNotEnd()) {
 
         var i = currentSessionIndex
