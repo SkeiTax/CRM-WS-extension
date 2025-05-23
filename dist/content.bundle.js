@@ -8247,11 +8247,11 @@
               var next = this.mergedRanges[i + 1];
               if (current.end === undefined || next.begin === undefined)
                   continue;
-              var breakDuration = current.end?.diff(next.begin);
-              if (breakDuration.minus(this.breakDuration).toMillis() > 0)
-                  return true;
+              var breakDuration = next.begin.diff(current.end);
+              if (breakDuration.plus({ minute: 1 }).toMillis() >= this.breakDuration.toMillis())
+                  return false;
           }
-          return false;
+          return true;
       }
   }
 
