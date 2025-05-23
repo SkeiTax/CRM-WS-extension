@@ -3,7 +3,7 @@
 # Настройки
 REPO_USER="SkeiTax" 
 REPO_NAME="CRM-WS-extension"
-ZIP_NAME="extension-latest.zip"
+ZIP_NAME="extension.zip"
 
 # Папка скрипта
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
