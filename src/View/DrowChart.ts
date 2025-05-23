@@ -1,14 +1,16 @@
 import { Chart } from "chart.js/auto";
-import "chartjs-adapter-luxon";
 import { DayInfo } from "../Model/DayInfo";
 import { TimeRange } from "../Model/TimeRange";
+import { DateTime, Duration } from "luxon";
+import annotationPlugin from 'chartjs-plugin-annotation';
+import "chartjs-adapter-luxon";
+
+Chart.register(annotationPlugin);
 
 export class DrowChart {
   private canvas: HTMLCanvasElement;
   private daysDate: DayInfo[];
   private gradient: CanvasGradient;
-
-  static halfDayOffset = { hour: 12 };
 
   constructor(canvas: HTMLCanvasElement, daysData: DayInfo[]) {
     this.canvas = canvas;
@@ -16,103 +18,60 @@ export class DrowChart {
 
     var ctx = this.canvas.getContext("2d")!;
     this.gradient = ctx.createLinearGradient(0, 0, 0, 400); // вертикальный градиент
-    this.gradient.addColorStop(0, "rgba(210, 180, 140, 0.75)"); // сверху — полупрозрачный зеленый
-    this.gradient.addColorStop(1, "rgba(116, 158, 98, 0)"); // снизу — прозрачный
+    this.gradient.addColorStop(0, "rgb(210, 180, 140)"); // сверху — полупрозрачный зеленый
+    this.gradient.addColorStop(1, "rgb(142, 194, 120)"); // снизу — прозрачный
   }
 
-  private daysStartWork() {
-    var data = this.daysDate.map((day) => {
-      var first: TimeRange | undefined = undefined;
-      var ranges = day.mergedRanges;
-      for (var i = 0; i < ranges.length; i++) {
-        if (ranges[i].begin !== undefined) {
-          first = ranges[i];
-          break;
+  private ranges(){
+    var data: {y:(DateTime | undefined)[], x:(string | null)}[] = Array<{y:(DateTime | undefined)[], x:(string | null)}>()
+    this.daysDate.forEach((day) => {
+      day.mergedRanges.forEach(range => { 
+        var r = {
+          y: [range.begin?.minus(day.date.toMillis()), range.end?.minus(day.date.toMillis())],
+          x: day.date.toISO(),
         }
+        data.push(r)
+      });
+      
+      var r = {
+        y: [undefined, undefined],
+        x: day.date.toISO(),
       }
-
-      return {
-        y: first?.begin?.minus(day.date.toMillis()),
-        x: day.date.plus(DrowChart.halfDayOffset).toISO(),
-      };
-    });
-    return data;
-  }
-
-  private daysEndWork() {
-    var data = this.daysDate.map((day) => {
-      var last: TimeRange | undefined = undefined;
-      var ranges = day.mergedRanges;
-      for (var i = ranges.length - 1; i >= 0; i--) {
-        if (ranges[i].end !== undefined) {
-          last = ranges[i];
-          break;
-        }
-      }
-
-      return {
-        y: last?.end?.minus(day.date.toMillis()),
-        x: day.date.plus(DrowChart.halfDayOffset).toISO(),
-      };
-    });
-    return data;
-  }
-
-  private recomendedStartWork() {
-    var data = this.daysDate.map((day) => {
-      return {
-        y: day.date.plus({ hour: 10 }).minus(day.date.toMillis()),
-        x: day.date.plus(DrowChart.halfDayOffset).toISO(),
-      };
-    });
-    return data;
-  }
-
-  private recomendedEndWork() {
-    var data = this.daysDate.map((day) => {
-      return {
-        y: day.date.plus({ hour: 17 }).minus(day.date.toMillis()),
-        x: day.date.plus(DrowChart.halfDayOffset).toISO(),
-      };
+      data.push(r)
     });
     return data;
   }
 
   public drow() {
+
     new Chart(this.canvas, {
-      type: "line",
       data: {
         datasets: [
           {
-            label: "Рекомендуемое начало рабочего дня",
-            data: this.recomendedStartWork(),
-            borderColor: "rgba(100, 196, 58, 0.3)",
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            pointHitRadius: 0,
-          },
-          {
-            label: "Рекомендуемый конец рабочего дня",
-            data: this.recomendedEndWork(),
-            borderColor: "rgba(212, 136, 35, 0.3)",
-            pointRadius: 0,
-            pointHoverRadius: 0,
-            pointHitRadius: 0,
-          },
-          {
+            type: 'bar',
             label: "Начало рабочего дня",
-            data: this.daysStartWork(),
-            fill: "+1",
+            data: this.ranges(),
             backgroundColor: this.gradient,
             borderColor: "rgb(116, 158, 98)",
-            tension: 0.2,
+            barPercentage: 1,
+            order: 10,
+            hidden: false,
           },
           {
-            label: "Конец рабочего дня",
-            data: this.daysEndWork(),
-            fill: false,
-            borderColor: "rgb(210, 180, 140)",
-            tension: 0.2,
+            type: 'line',
+            label: "Рекомендуемый диапазон начала работы",
+            data: undefined,
+            backgroundColor: "rgba(100, 196, 58, 0.3)",
+            borderWidth: 0,
+            hidden: false,
+          },
+          {
+            type: 'line',
+            label: "Рекомендуемый диапазон завершения работы",
+            data: undefined,
+            backgroundColor: "rgba(212, 136, 35, 0.3)",
+            borderWidth: 0,
+            hidden: false,
           },
         ],
       },
@@ -158,6 +117,33 @@ export class DrowChart {
             },
           },
         },
+        plugins: {
+          annotation: {
+            annotations: {
+              box1: {
+                type: 'box',
+                yMin: Duration.fromObject({hour: 8}).toMillis(),
+                yMax: Duration.fromObject({hour: 10}).toMillis(),
+                backgroundColor: "rgba(100, 196, 58, 0.3)",
+                borderWidth: 0,
+                drawTime: 'beforeDraw',
+              },
+              
+              box2: {
+                type: 'box',
+                yMin: Duration.fromObject({hour: 17}).toMillis(),
+                yMax: Duration.fromObject({hour: 19}).toMillis(),
+                backgroundColor: "rgba(212, 136, 35, 0.3)",
+                borderWidth: 0,
+                drawTime: 'beforeDraw',
+              }
+            }
+          },
+          
+          legend: {
+            onClick: () => {}
+          }
+        }
       },
     });
   }
