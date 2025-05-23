@@ -44,8 +44,8 @@
     - и другие
 
 4. Перейдите на страницу расширений:
-    - [chrome://extensions](chrome://extensions) - для Google Chome и Chomium
-    - [browser://extensions](browser://extensions) - для Yandex Browser
+    - `chrome://extensions` - для Google Chome и Chomium
+    - `browser://extensions` - для Yandex Browser
 
 5. Включите [Режим разработчика](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world?hl=ru#load-unpacked) в правом верхнем углу открывшейся страницы
 
@@ -65,8 +65,8 @@
 3. Дождитесь завершения **(предупреждение об окончании может не появиться)**
 
 4. Откройте страницу управления расширениями:
-    - [chrome://extensions](chrome://extensions) - для Google Chome и Chomium
-    - [browser://extensions](browser://extensions) - для Yandex Browser
+    - `chrome://extensions` - для Google Chome и Chomium
+    - `browser://extensions` - для Yandex Browser
 
 5. Найдите нужное расширение и нажмите кнопу [обновления](https://developer.chrome.com/docs/extensions/get-started/tutorial/hello-world?hl=ru#reload)
 
