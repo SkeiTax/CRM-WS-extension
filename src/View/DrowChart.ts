@@ -1,4 +1,4 @@
-import { Chart } from "chart.js/auto";
+import { Chart, TooltipItem } from "chart.js/auto";
 import { DayInfo } from "../Model/DayInfo";
 import { TimeRange } from "../Model/TimeRange";
 import { DateTime, Duration } from "luxon";
@@ -48,8 +48,8 @@ export class DrowChart {
       data: {
         datasets: [
           {
-            type: 'bar',
-            label: "Начало рабочего дня",
+            type: "bar",
+            label: "Время работы",
             data: this.ranges(),
             backgroundColor: this.gradient,
             borderColor: "rgb(116, 158, 98)",
@@ -58,7 +58,7 @@ export class DrowChart {
             hidden: false,
           },
           {
-            type: 'line',
+            type: "line",
             label: "Рекомендуемый диапазон начала работы",
             data: undefined,
             backgroundColor: "rgba(100, 196, 58, 0.3)",
@@ -66,7 +66,7 @@ export class DrowChart {
             hidden: false,
           },
           {
-            type: 'line',
+            type: "line",
             label: "Рекомендуемый диапазон завершения работы",
             data: undefined,
             backgroundColor: "rgba(212, 136, 35, 0.3)",
@@ -88,8 +88,9 @@ export class DrowChart {
             time: {
               unit: "day",
               displayFormats: {
-                day: "dd.MM",
+                day: "dd",
               },
+              tooltipFormat: "DD",
             },
             title: {
               display: true,
@@ -121,29 +122,51 @@ export class DrowChart {
           annotation: {
             annotations: {
               box1: {
-                type: 'box',
-                yMin: Duration.fromObject({hour: 8}).toMillis(),
-                yMax: Duration.fromObject({hour: 10}).toMillis(),
+                type: "box",
+                yMin: Duration.fromObject({ hour: 8 }).toMillis(),
+                yMax: Duration.fromObject({ hour: 10 }).toMillis(),
                 backgroundColor: "rgba(100, 196, 58, 0.3)",
                 borderWidth: 0,
-                drawTime: 'beforeDraw',
+                drawTime: "beforeDraw",
               },
-              
+
               box2: {
-                type: 'box',
-                yMin: Duration.fromObject({hour: 17}).toMillis(),
-                yMax: Duration.fromObject({hour: 19}).toMillis(),
+                type: "box",
+                yMin: Duration.fromObject({ hour: 17 }).toMillis(),
+                yMax: Duration.fromObject({ hour: 19 }).toMillis(),
                 backgroundColor: "rgba(212, 136, 35, 0.3)",
                 borderWidth: 0,
-                drawTime: 'beforeDraw',
-              }
-            }
+                drawTime: "beforeDraw",
+              },
+            },
           },
-          
+
           legend: {
-            onClick: () => {}
-          }
-        }
+            onClick: () => {},
+          },
+          tooltip: {
+            callbacks: {
+              label: function (context) {
+                const raw = context.raw as { y: [DateTime, DateTime] };
+
+                if (!Array.isArray(raw.y) || raw.y.length !== 2) {
+                  return "Invalid data";
+                }
+
+                const [start, end] = raw.y;
+
+                const startStr = start.toUTC().toFormat(
+                  "HH:mm"
+                );
+                const endStr = end.toUTC().toFormat(
+                  "HH:mm"
+                );
+
+                return ` ${context.dataset.label}: ${startStr} - ${endStr}`;
+              },
+            },
+          },
+        },
       },
     });
   }
