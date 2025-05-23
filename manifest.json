@@ -10,7 +10,7 @@
     {
       "matches": ["https://crm.dent-it.ru/*"],
       "js": ["index.js"],
-      "css": ["resources/styles.css"],
+      "css": ["resources/style.css"],
       "run_at": "document_idle"
     } 
   ]
