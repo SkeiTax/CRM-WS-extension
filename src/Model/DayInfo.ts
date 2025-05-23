@@ -71,32 +71,32 @@ export class DayInfo {
       );
     };
 
-    const findStartSessionIndex = () => {
+    const findNextSessionIndex = () => {
       if (this.sessions.length < 2) return 0;
       var startRanges = this.sessions.map(
         (session, sessionIndex) => session.ranges[indexInSessions[sessionIndex]]
       );
       var sortedRanges = Array.from(startRanges).sort(TimeRange.compare);
-      return startRanges.findIndex((range) => (range = sortedRanges[0]));
+      var index = startRanges.findIndex((range) => (range == sortedRanges[0]))
+      return index;
     };
+
+    
 
     while (isNotEnd()) {
       var range = new TimeRange();
-      var currentSessionIndex = findStartSessionIndex();
+      //var currentSessionIndex = findStartSessionIndex();
       while (isNotEnd()) {
-        var i = currentSessionIndex;
-        for (; i < this.sessions.length; i++) {
-          if (
-            TimeRange.RangeCollision(
-              range,
-              this.sessions[i].ranges[indexInSessions[i]]
-            )
-          ) {
-            currentSessionIndex = i;
-            break;
-          }
+        
+        var currentSessionIndex = findNextSessionIndex();
+        if (!TimeRange.RangeCollision(
+          range,
+          this.sessions[currentSessionIndex].ranges[indexInSessions[currentSessionIndex]]
+        )) {
+          break;
         }
-        if (i === this.sessions.length) break;
+        
+        if (currentSessionIndex === this.sessions.length || currentSessionIndex === -1) break;
 
         range = TimeRange.Merge(
           range,

@@ -8100,19 +8100,24 @@
               (left.end === undefined && right.end === undefined))
               return true;
           if (left.begin === undefined &&
-              right.end === undefined &&
+              left.end === undefined ||
+              right.begin === undefined &&
+                  right.end === undefined)
+              return true;
+          if (left.begin === undefined &&
               left.end !== undefined &&
+              right.end === undefined &&
               right.begin !== undefined)
               return left.end.diff(right.begin).toMillis() >= 0;
-          if (right.begin === undefined &&
+          if (left.begin !== undefined &&
               left.end === undefined &&
-              right.end !== undefined &&
-              left.begin !== undefined)
+              right.begin === undefined &&
+              right.end !== undefined)
               return right.end.diff(left.begin).toMillis() >= 0;
           if (left.begin !== undefined &&
-              right.end !== undefined &&
+              left.end !== undefined &&
               right.begin !== undefined &&
-              left.end !== undefined) {
+              right.end !== undefined) {
               return ((left.end.diff(right.begin).toMillis() >= 0 &&
                   left.begin.diff(right.end).toMillis() < 0) ||
                   (right.end.diff(left.begin).toMillis() >= 0 &&
@@ -8197,25 +8202,23 @@
           const isNotEnd = () => {
               return (this.sessions.find((session, sessionIndex) => indexInSessions[sessionIndex] < session.ranges.length) !== undefined);
           };
-          const findStartSessionIndex = () => {
+          const findNextSessionIndex = () => {
               if (this.sessions.length < 2)
                   return 0;
               var startRanges = this.sessions.map((session, sessionIndex) => session.ranges[indexInSessions[sessionIndex]]);
               var sortedRanges = Array.from(startRanges).sort(TimeRange.compare);
-              return startRanges.findIndex((range) => (sortedRanges[0]));
+              var index = startRanges.findIndex((range) => (range == sortedRanges[0]));
+              return index;
           };
           while (isNotEnd()) {
               var range = new TimeRange();
-              var currentSessionIndex = findStartSessionIndex();
+              //var currentSessionIndex = findStartSessionIndex();
               while (isNotEnd()) {
-                  var i = currentSessionIndex;
-                  for (; i < this.sessions.length; i++) {
-                      if (TimeRange.RangeCollision(range, this.sessions[i].ranges[indexInSessions[i]])) {
-                          currentSessionIndex = i;
-                          break;
-                      }
+                  var currentSessionIndex = findNextSessionIndex();
+                  if (!TimeRange.RangeCollision(range, this.sessions[currentSessionIndex].ranges[indexInSessions[currentSessionIndex]])) {
+                      break;
                   }
-                  if (i === this.sessions.length)
+                  if (currentSessionIndex === this.sessions.length || currentSessionIndex === -1)
                       break;
                   range = TimeRange.Merge(range, this.sessions[currentSessionIndex].ranges[indexInSessions[currentSessionIndex]]);
                   indexInSessions[currentSessionIndex]++;

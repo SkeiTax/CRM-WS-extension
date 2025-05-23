@@ -53,25 +53,33 @@ export class TimeRange {
 
     if (
       left.begin === undefined &&
-      right.end === undefined &&
+      left.end === undefined ||
+      right.begin === undefined &&
+      right.end === undefined
+    )
+      return true
+
+    if (
+      left.begin === undefined &&
       left.end !== undefined &&
+      right.end === undefined &&
       right.begin !== undefined
     )
       return left.end.diff(right.begin).toMillis() >= 0;
 
     if (
-      right.begin === undefined &&
+      left.begin !== undefined &&
       left.end === undefined &&
-      right.end !== undefined &&
-      left.begin !== undefined
+      right.begin === undefined &&
+      right.end !== undefined
     )
       return right.end.diff(left.begin).toMillis() >= 0;
 
     if (
       left.begin !== undefined &&
-      right.end !== undefined &&
+      left.end !== undefined &&
       right.begin !== undefined &&
-      left.end !== undefined
+      right.end !== undefined
     ) {
       return (
         (left.end.diff(right.begin).toMillis() >= 0 &&
@@ -80,6 +88,7 @@ export class TimeRange {
           right.begin.diff(left.end).toMillis() < 0)
       );
     }
+
     return false;
   }
 
