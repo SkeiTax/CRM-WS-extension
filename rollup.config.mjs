@@ -7,7 +7,7 @@ import copy from 'rollup-plugin-copy';
 export default {
   input: 'src/index.ts',
   output: {
-    file: 'dist/content.bundle.js',
+    file: 'dist/index.js',
     format: 'iife',      // Immediately‑Invoked Function Expression
     name: 'ContentScript',
   },
@@ -18,7 +18,7 @@ export default {
     copy({
       targets: [
         { src: 'manifest.json', dest: 'dist' },
-        { src: 'resources/*', dest: 'dist' },
+        { src: 'resources/*', dest: 'dist/resources' },
         { src: 'update-*.*', dest: 'dist' }
       ]
     })
