@@ -38,7 +38,7 @@ export class DayInfo {
   public get mergedRanges(): TimeRange[] {
     if (this._margedRanges !== undefined) return this._margedRanges;
 
-    this._margedRanges = this.margeRanges();
+    this._margedRanges = this.margeRanges().sort(TimeRange.compare);
     return this._margedRanges;
   }
 
@@ -77,26 +77,31 @@ export class DayInfo {
         (session, sessionIndex) => session.ranges[indexInSessions[sessionIndex]]
       );
       var sortedRanges = Array.from(startRanges).sort(TimeRange.compare);
-      var index = startRanges.findIndex((range) => (range == sortedRanges[0]))
+      var index = startRanges.findIndex((range) => range == sortedRanges[0]);
       return index;
     };
-
-    
 
     while (isNotEnd()) {
       var range = new TimeRange();
       //var currentSessionIndex = findStartSessionIndex();
       while (isNotEnd()) {
-        
         var currentSessionIndex = findNextSessionIndex();
-        if (!TimeRange.RangeCollision(
-          range,
-          this.sessions[currentSessionIndex].ranges[indexInSessions[currentSessionIndex]]
-        )) {
+        if (
+          !TimeRange.RangeCollision(
+            range,
+            this.sessions[currentSessionIndex].ranges[
+              indexInSessions[currentSessionIndex]
+            ]
+          )
+        ) {
           break;
         }
-        
-        if (currentSessionIndex === this.sessions.length || currentSessionIndex === -1) break;
+
+        if (
+          currentSessionIndex === this.sessions.length ||
+          currentSessionIndex === -1
+        )
+          break;
 
         range = TimeRange.Merge(
           range,
@@ -109,7 +114,9 @@ export class DayInfo {
 
       ranges.push(range);
     }
-    return ranges.filter(range => range.begin !== undefined && range.end !== undefined);
+    return ranges.filter(
+      (range) => range.begin !== undefined && range.end !== undefined
+    );
   }
 
   /**
@@ -136,7 +143,11 @@ export class DayInfo {
       var next = this.mergedRanges[i + 1];
       if (current.end === undefined || next.begin === undefined) continue;
       var breakDuration = next.begin.diff(current.end);
-      if (breakDuration.plus({minute: 1}).toMillis() >= this.breakDuration.toMillis()) return false;
+      if (
+        breakDuration.plus({ minute: 1 }).toMillis() >=
+        this.breakDuration.toMillis()
+      )
+        return false;
     }
     return true;
   }

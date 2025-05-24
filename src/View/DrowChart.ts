@@ -1,8 +1,7 @@
 import { Chart, TooltipItem } from "chart.js/auto";
 import { DayInfo } from "../Model/DayInfo";
-import { TimeRange } from "../Model/TimeRange";
 import { DateTime, Duration } from "luxon";
-import annotationPlugin from 'chartjs-plugin-annotation';
+import annotationPlugin from "chartjs-plugin-annotation";
 import "chartjs-adapter-luxon";
 
 Chart.register(annotationPlugin);
@@ -10,72 +9,103 @@ Chart.register(annotationPlugin);
 export class DrowChart {
   private canvas: HTMLCanvasElement;
   private daysDate: DayInfo[];
-  private gradient: CanvasGradient;
+  private lowerLimit: Duration;
+  private upperLimit: Duration;
+  private static spaceOffsetDuration: Duration = Duration.fromObject({
+    hour: 1,
+    minute: 10,
+  });
+  private static baseStart = Duration.fromObject({ hour: 10 });
+  private static baseEnd = Duration.fromObject({ hour: 17 });
 
   constructor(canvas: HTMLCanvasElement, daysData: DayInfo[]) {
     this.canvas = canvas;
     this.daysDate = daysData;
 
-    var ctx = this.canvas.getContext("2d")!;
-    this.gradient = ctx.createLinearGradient(0, 0, 0, 400); // вертикальный градиент
-    this.gradient.addColorStop(0, "rgb(210, 180, 140)"); // сверху — полупрозрачный зеленый
-    this.gradient.addColorStop(1, "rgb(142, 194, 120)"); // снизу — прозрачный
+    var minRange = this.daysDate
+      .filter((day) => day.duration.toMillis() > 0)
+      .map((day) => day.mergedRanges[0].begin?.diff(day.date))
+      .sort()[0];
+    this.lowerLimit = (minRange ?? DrowChart.baseStart).minus(
+      DrowChart.spaceOffsetDuration
+    );
+
+    var maxRange = this.daysDate
+      .filter((day) => day.duration.toMillis() > 0)
+      .map((day) =>
+        day.mergedRanges[day.mergedRanges.length - 1].end?.diff(day.date)
+      )
+      .filter((dur) => dur !== undefined)
+      .sort((l, r) => r.minus(l).toMillis())[0];
+    this.upperLimit = (maxRange ?? DrowChart.baseEnd).plus(
+      DrowChart.spaceOffsetDuration
+    );
   }
 
-  private ranges(){
-    var data: {y:(DateTime | undefined)[], x:(string | null)}[] = Array<{y:(DateTime | undefined)[], x:(string | null)}>()
+  private workedRanges() {
+    var data: { y: (DateTime | undefined)[]; x: string | null }[] = Array<{
+      y: (DateTime | undefined)[];
+      x: string | null;
+    }>();
     this.daysDate.forEach((day) => {
-      day.mergedRanges.forEach(range => { 
+      day.mergedRanges.forEach((range) => {
         var r = {
-          y: [range.begin?.minus(day.date.toMillis()), range.end?.minus(day.date.toMillis())],
+          y: [
+            range.begin?.minus(day.date.toMillis()),
+            range.end?.minus(day.date.toMillis()),
+          ],
           x: day.date.toISO(),
-        }
-        data.push(r)
+        };
+        data.push(r);
       });
-      
+
       var r = {
         y: [undefined, undefined],
         x: day.date.toISO(),
-      }
-      data.push(r)
+      };
+      data.push(r);
     });
     return data;
   }
 
-  public drow() {
+  weekends(): unknown {
+    return this.daysDate
+      .filter((day) => day.isWeekend)
+      .map((day) => {
+        return {
+          x: day.date.toISO(),
+          y: [this.lowerLimit.toMillis(), this.upperLimit.toMillis()],
+        };
+      });
+  }
 
+  public drow() {
     new Chart(this.canvas, {
       data: {
         datasets: [
           {
             type: "bar",
             label: "Время работы",
-            data: this.ranges(),
-            backgroundColor: this.gradient,
-            borderColor: "rgb(116, 158, 98)",
+            data: this.workedRanges(),
+            backgroundColor: "rgba(140, 192, 224, 1)",
             barPercentage: 1,
             order: 10,
             hidden: false,
           },
           {
-            type: "line",
-            label: "Рекомендуемый диапазон начала работы",
-            data: undefined,
-            backgroundColor: "rgba(100, 196, 58, 0.3)",
-            borderWidth: 0,
-            hidden: false,
-          },
-          {
-            type: "line",
-            label: "Рекомендуемый диапазон завершения работы",
-            data: undefined,
-            backgroundColor: "rgba(212, 136, 35, 0.3)",
-            borderWidth: 0,
+            type: "bar",
+            label: "Выходные",
+            data: this.weekends(),
+            backgroundColor: "rgba(0, 0, 0, 0.1)",
+            categoryPercentage: 1.0,
+            barPercentage: 1.0,
+            order: -1,
             hidden: false,
           },
         ],
       },
       options: {
+        maintainAspectRatio: false,
         scales: {
           x: {
             adapters: {
@@ -93,9 +123,10 @@ export class DrowChart {
               tooltipFormat: "DD",
             },
             title: {
-              display: true,
+              display: false,
               text: "Дата",
             },
+            stacked: true,
           },
           y: {
             adapters: {
@@ -113,30 +144,45 @@ export class DrowChart {
               tooltipFormat: "HH:mm",
             },
             title: {
-              display: true,
+              display: false,
               text: "Время",
             },
+            min: this.lowerLimit.toMillis(),
+            max: this.upperLimit.toMillis(),
           },
         },
         plugins: {
           annotation: {
             annotations: {
-              box1: {
-                type: "box",
-                yMin: Duration.fromObject({ hour: 8 }).toMillis(),
-                yMax: Duration.fromObject({ hour: 10 }).toMillis(),
-                backgroundColor: "rgba(100, 196, 58, 0.3)",
-                borderWidth: 0,
+              startLine: {
+                type: "line",
+                yMin: DrowChart.baseStart.toMillis(),
+                yMax: DrowChart.baseStart.toMillis(),
+                borderColor: "rgba(76, 175, 80, 1)",
+                borderWidth: 3,
                 drawTime: "beforeDraw",
               },
 
-              box2: {
-                type: "box",
-                yMin: Duration.fromObject({ hour: 17 }).toMillis(),
-                yMax: Duration.fromObject({ hour: 19 }).toMillis(),
-                backgroundColor: "rgba(212, 136, 35, 0.3)",
-                borderWidth: 0,
+              endLine: {
+                type: "line",
+                yMin: DrowChart.baseEnd.toMillis(),
+                yMax: DrowChart.baseEnd.toMillis(),
+                borderColor: "rgba(76, 175, 80, 1)",
+                borderWidth: 3,
                 drawTime: "beforeDraw",
+              },
+
+              nowLine: {
+                type: "line",
+                yMin: DateTime.now()
+                  .diff(DateTime.fromObject({ hour: 0 }))
+                  .toMillis(),
+                yMax: DateTime.now()
+                  .diff(DateTime.fromObject({ hour: 0 }))
+                  .toMillis(),
+                borderColor: "rgba(234, 56, 56, 1)",
+                borderWidth: 1,
+                drawTime: "afterDraw",
               },
             },
           },
@@ -155,15 +201,15 @@ export class DrowChart {
 
                 const [start, end] = raw.y;
 
-                const startStr = start.toUTC().toFormat(
-                  "HH:mm"
-                );
-                const endStr = end.toUTC().toFormat(
-                  "HH:mm"
-                );
+                const startStr = start.toUTC().toFormat("HH:mm");
+                const endStr = end.toUTC().toFormat("HH:mm");
 
                 return ` ${context.dataset.label}: ${startStr} - ${endStr}`;
               },
+            },
+            filter: function (tooltipItem) {
+              // tooltipItem.datasetIndex — индекс набора данных
+              return tooltipItem.datasetIndex !== 1; // отключить тултип для второго набора
             },
           },
         },

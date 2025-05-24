@@ -16,7 +16,7 @@ export class TimeRange {
 
   public static compare(leftRange: TimeRange, rightRange: TimeRange) {
     if (leftRange.begin !== undefined && rightRange.begin !== undefined) {
-      return Math.sign(leftRange.begin.diff(rightRange.begin).toMillis());
+      return leftRange.begin.diff(rightRange.begin).toMillis();
     }
     if (leftRange.begin === undefined && rightRange.begin !== undefined) {
       return 1;
@@ -28,7 +28,7 @@ export class TimeRange {
       if (leftRange.end === undefined) return 1;
       if (rightRange.end === undefined) return -1;
       if (leftRange.end === undefined && rightRange.end === undefined) return 0;
-      return Math.sign(leftRange.end.diff(rightRange.end).toMillis());
+      return leftRange.end.diff(rightRange.end).toMillis();
     }
     return 0;
   }
@@ -52,12 +52,10 @@ export class TimeRange {
       return true;
 
     if (
-      left.begin === undefined &&
-      left.end === undefined ||
-      right.begin === undefined &&
-      right.end === undefined
+      (left.begin === undefined && left.end === undefined) ||
+      (right.begin === undefined && right.end === undefined)
     )
-      return true
+      return true;
 
     if (
       left.begin === undefined &&

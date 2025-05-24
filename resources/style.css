@@ -1,0 +1,43 @@
+#charts-and-tables {
+  display: flex;
+  gap: 20px;
+  align-items: stretch;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  width: 100%;
+  height: 25vh;
+}
+
+#main-table {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  align-items: center;
+}
+
+#work-info {
+  flex: 0 0 auto;
+}
+
+#main-table>table {
+  flex: 1;
+  aspect-ratio: 8/5;
+  height: 100%;
+}
+
+#main-table>span,
+#main-table>div {
+  font-size: 16px;
+}
+
+
+#main-chart {
+  height: 100%;
+  aspect-ratio: 5/2;
+}
+
+#main-chart-canvas {
+  height: 100%;
+  width: 100%;
+  aspect-ratio: unset;
+}

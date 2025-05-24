@@ -1,5 +1,5 @@
 import { DateTime, Duration } from "luxon";
-import { waitForElm } from "./DOMUtils";
+import { waitForElm, createElement } from "./DOMUtils";
 import { abs } from "./Formating";
 import { MonthInfo as MonthInfo } from "./Model/MonthInfo";
 import { DrowChart } from "./View/DrowChart";
@@ -39,24 +39,43 @@ class CRME {
     console.log(totalDeltaTimePrefix, abs(totalDelta).toFormat("hh:mm"));
     console.log(DateTime.now().zone);
 
-    var totalDeltaElement = document.createElement("span");
+    var totalDeltaElement = createElement(
+      "span",
+      {},
+      { color: "#aaa", fontSize: "0.8em" }
+    );
     totalDeltaElement.textContent = `(${totalDeltaTimePrefix}: ${abs(
       totalDelta
     ).toFormat("hh:mm")})`;
-    totalDeltaElement.setAttribute("style", "color: #aaa; font-size: 0.8em;");
 
     workDaysTracker.appendChild(totalDeltaElement);
 
-    var chartDiv = document.createElement("div") as HTMLDivElement;
-    chartDiv.setAttribute("style", "width: 800px; height: 400px;");
-    var canvas = document.createElement("canvas") as HTMLCanvasElement;
-    chartDiv.appendChild(canvas);
+    var mainDiv = await waitForElm("#MainDiv");
 
-    (await waitForElm("#MainDiv")).append(chartDiv);
+    var mainTableDiv = createElement("div", { id: "main-table" });
 
+    var workInfo = createElement("div", { id: "work-info" });
+    Array.from(mainDiv.children).forEach((child) => {
+      workInfo.appendChild(child);
+    });
+
+    mainTableDiv.appendChild(workInfo);
+    mainTableDiv.appendChild(table);
+
+    var canvas = createElement("canvas", {
+      id: "main-chart-canvas",
+    }) as HTMLCanvasElement;
     new DrowChart(canvas, this.monthInfo.days).drow();
-  }
+    var mainChart = createElement("div", { id: "main-chart" });
+    mainChart.appendChild(canvas);
 
+    var chartsAndTables = createElement("div", { id: "charts-and-tables" });
+
+    mainDiv.appendChild(chartsAndTables);
+
+    chartsAndTables.appendChild(mainTableDiv);
+    chartsAndTables.appendChild(mainChart);
+  }
   public dump = () => {
     return JSON.stringify(this.monthInfo);
   };
@@ -70,10 +89,10 @@ async function init() {
     const target = event.target as HTMLSelectElement;
     if (target && target.tagName === "SELECT") {
       crme.init();
-  	  console.log(crme);
+      console.log(crme);
     }
   });
-  
+
   crme.init();
   console.log(crme);
 
