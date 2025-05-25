@@ -203,8 +203,9 @@ export class DrowChart {
 
                 const startStr = start.toUTC().toFormat("HH:mm");
                 const endStr = end.toUTC().toFormat("HH:mm");
+                const diff = end.diff(start).toFormat("h:mm")
 
-                return ` ${context.dataset.label}: ${startStr} - ${endStr}`;
+                return ` ${context.dataset.label}: ${startStr} - ${endStr} (${diff})`;
               },
             },
             filter: function (tooltipItem) {

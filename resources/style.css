@@ -5,24 +5,27 @@
   flex-wrap: wrap;
   justify-content: flex-start;
   width: 100%;
-  height: 25vh;
 }
-
+#charts-and-tables > *{
+  height: 300px;
+}
+#MainDiv {
+  margin-top: 0;
+}
 #main-table {
   display: flex;
   flex-direction: column;
-  height: 100%;
   align-items: center;
+  justify-content: center;
+  gap: 1em;
 }
 
 #work-info {
-  flex: 0 0 auto;
 }
 
 #main-table>table {
-  flex: 1;
   aspect-ratio: 8/5;
-  height: 100%;
+  height: auto;
 }
 
 #main-table>span,
@@ -32,7 +35,6 @@
 
 
 #main-chart {
-  height: 100%;
   aspect-ratio: 5/2;
 }
 
