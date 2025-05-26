@@ -5,6 +5,7 @@ import commonjs from '@rollup/plugin-commonjs';
 import copy from 'rollup-plugin-copy';
 import vue from 'rollup-plugin-vue';
 import css from 'rollup-plugin-css-only';
+import esbuild from 'rollup-plugin-esbuild';
 
 export default {
   input: 'src/index.ts',
@@ -56,6 +57,11 @@ export default {
         { src: 'update-*.*', dest: 'dist' },
       ]
     }),
+    esbuild({
+      include: /\.[jt]s?$/, // обрабатывает .ts
+      target: 'esnext',
+      tsconfig: 'tsconfig.json'
+    })
   ],
   external: ['vue'],
 }

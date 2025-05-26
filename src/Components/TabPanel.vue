@@ -12,39 +12,44 @@
   </div>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import Tab from './Tab.vue'
-import { ref, watch, provide, onMounted } from 'vue'
+import { ref, watch, provide, PropType } from 'vue'
+import { IDependencyProperty } from '../Domain/DependencyProperty'
 
 const props = defineProps({
-  selectedIndex: { type: Number, default: 0 }
+  selectedIndex: { type: Object as PropType<IDependencyProperty<number>>, default: undefined },
 })
+
 
 // 👉 регистрация emit
-const emit = defineEmits(['update:selectedIndex'])
+const emit = defineEmits([
+  'update:selectedIndexProperty'
+])
 
-const tabs = ref([])
-const selectedIndex = ref(props.selectedIndex)
+const tabs = ref(Array<any>())
+const selectedIndexProperty = ref(props.selectedIndex)
 
 watch(() => props.selectedIndex, (newVal) => {
-  selectedIndex.value = newVal
+  if (newVal === undefined) return;
+  selectedIndexProperty.value = newVal
 })
 
-function select(index) {
-  localStorage.setItem('TabIndex', index)
-  selectedIndex.value = index
-  emit('update:selectedIndex', index)
+function select(index: number) {
+  if (selectedIndexProperty.value)
+    selectedIndexProperty.value.value = index
+
+  emit('update:selectedIndexProperty', index)
 }
 
-
-function registerTab(tab) {
+function registerTab(tab: any) {
   tabs.value.push(tab)
   return tabs.value.length
 }
 
 
 provide('registerTab', registerTab)
-provide('selectedIndex', selectedIndex)
+provide('selectedIndexProperty', selectedIndexProperty)
 </script>
 
 
@@ -57,12 +62,12 @@ provide('selectedIndex', selectedIndex)
   border-top: 1px solid #ddd;
 }
 
-.tab-headers{
+.tab-headers {
   display: flex;
   flex-direction: row;
 }
 
-.tab-headers > button {
+.tab-headers>button {
   margin-bottom: -1px;
   margin-right: -1px;
   display: block;
@@ -71,9 +76,10 @@ provide('selectedIndex', selectedIndex)
   border-color: #ddd;
   border-bottom: 1px solid none;
   background: none;
-  padding:0.5em 1em;
+  padding: 0.5em 1em;
 }
-.tab-headers > button[selected='true'] {
+
+.tab-headers>button[selected='true'] {
   border-bottom: 1px solid #fff;
 }
 </style>

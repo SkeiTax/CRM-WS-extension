@@ -1,16 +1,14 @@
 <template>
-  <TabPanel :selectedIndex="index">
+  <TabPanel :selectedIndex="storedProperty">
     <Tab title="First Tab">Content 1</Tab>
     <Tab title="Second Tab">Content 2</Tab>
     <Tab title="Third Tab">Content 3</Tab>
   </TabPanel>
 </template>
 
-<script setup>
+<script setup lang="ts">
 import TabPanel from './TabPanel.vue'
 import Tab from './Tab.vue'
-import { ref } from 'vue'
-
-if (!localStorage['TabIndex']) localStorage['TabIndex'] = 0
-const index = ref(Number(localStorage['TabIndex']))
+import { StoredProperty } from '../Domain/StoredProperty'
+const storedProperty = new StoredProperty('mainSelectedTab', 0)
 </script>
