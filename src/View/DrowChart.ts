@@ -174,7 +174,7 @@ export class MainChart {
               yMin: MainChart.baseStart.toMillis(),
               yMax: MainChart.baseStart.toMillis(),
               borderColor: "rgba(76, 175, 80, 1)",
-              borderWidth: 3,
+              borderWidth: 1,
               drawTime: "beforeDraw",
             },
 
