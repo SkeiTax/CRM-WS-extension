@@ -103,7 +103,7 @@ export class MainChart {
           data: this.weekends(),
           backgroundColor: "rgba(0, 0, 0, 0.1)",
           categoryPercentage: 1.0,
-          barPercentage: 1.0,
+          barPercentage: 0.9999,
           order: -1,
           hidden: false,
         },
@@ -136,6 +136,9 @@ export class MainChart {
             text: "Дата",
           },
           stacked: true,
+          grid: {
+            display: false // ❌ отключить сетку по оси X
+          },
         },
         y: {
           adapters: {
@@ -158,6 +161,9 @@ export class MainChart {
           },
           min: this.lowerLimit.toMillis(),
           max: this.upperLimit.toMillis(),
+          grid: {
+            display: false // ❌ отключить сетку по оси X
+          },
         },
       },
       plugins: {
@@ -177,7 +183,7 @@ export class MainChart {
               yMin: MainChart.baseEnd.toMillis(),
               yMax: MainChart.baseEnd.toMillis(),
               borderColor: "rgba(76, 175, 80, 1)",
-              borderWidth: 3,
+              borderWidth: 1,
               drawTime: "beforeDraw",
             },
 
