@@ -1,4 +1,10 @@
-import { Chart, TooltipItem } from "chart.js/auto";
+import {
+  Chart,
+  ChartData,
+  ChartOptions,
+  ChartType,
+  TooltipItem,
+} from "chart.js/auto";
 import { DayInfo } from "../Model/DayInfo";
 import { DateTime, Duration } from "luxon";
 import annotationPlugin from "chartjs-plugin-annotation";
@@ -6,8 +12,7 @@ import "chartjs-adapter-luxon";
 
 Chart.register(annotationPlugin);
 
-export class DrowChart {
-  private canvas: HTMLCanvasElement;
+export class MainChart {
   private daysDate: DayInfo[];
   private lowerLimit: Duration;
   private upperLimit: Duration;
@@ -18,16 +23,15 @@ export class DrowChart {
   private static baseStart = Duration.fromObject({ hour: 10 });
   private static baseEnd = Duration.fromObject({ hour: 17 });
 
-  constructor(canvas: HTMLCanvasElement, daysData: DayInfo[]) {
-    this.canvas = canvas;
+  constructor(daysData: DayInfo[]) {
     this.daysDate = daysData;
 
     var minRange = this.daysDate
       .filter((day) => day.duration.toMillis() > 0)
       .map((day) => day.mergedRanges[0].begin?.diff(day.date))
       .sort()[0];
-    this.lowerLimit = (minRange ?? DrowChart.baseStart).minus(
-      DrowChart.spaceOffsetDuration
+    this.lowerLimit = (minRange ?? MainChart.baseStart).minus(
+      MainChart.spaceOffsetDuration
     );
 
     var maxRange = this.daysDate
@@ -37,8 +41,8 @@ export class DrowChart {
       )
       .filter((dur) => dur !== undefined)
       .sort((l, r) => r.minus(l).toMillis())[0];
-    this.upperLimit = (maxRange ?? DrowChart.baseEnd).plus(
-      DrowChart.spaceOffsetDuration
+    this.upperLimit = (maxRange ?? MainChart.baseEnd).plus(
+      MainChart.spaceOffsetDuration
     );
   }
 
@@ -78,143 +82,150 @@ export class DrowChart {
         };
       });
   }
-
-  public drow() {
-    new Chart(this.canvas, {
-      data: {
-        datasets: [
-          {
-            type: "bar",
-            label: "Время работы",
-            data: this.workedRanges(),
-            backgroundColor: "rgba(140, 192, 224, 1)",
-            barPercentage: 1,
-            order: 10,
-            hidden: false,
-          },
-          {
-            type: "bar",
-            label: "Выходные",
-            data: this.weekends(),
-            backgroundColor: "rgba(0, 0, 0, 0.1)",
-            categoryPercentage: 1.0,
-            barPercentage: 1.0,
-            order: -1,
-            hidden: false,
-          },
-        ],
-      },
-      options: {
-        maintainAspectRatio: false,
-        scales: {
-          x: {
-            adapters: {
-              date: {
-                zone: "UTC+3",
-                setZone: true,
-              },
-            },
-            type: "time",
-            time: {
-              unit: "day",
-              displayFormats: {
-                day: "dd",
-              },
-              tooltipFormat: "DD",
-            },
-            title: {
-              display: false,
-              text: "Дата",
-            },
-            stacked: true,
-          },
-          y: {
-            adapters: {
-              date: {
-                zone: "UTC",
-                setZone: true,
-              },
-            },
-            type: "time",
-            time: {
-              unit: "hour",
-              displayFormats: {
-                hour: "HH:mm",
-              },
-              tooltipFormat: "HH:mm",
-            },
-            title: {
-              display: false,
-              text: "Время",
-            },
-            min: this.lowerLimit.toMillis(),
-            max: this.upperLimit.toMillis(),
-          },
+  get type() {
+    return undefined as unknown as ChartType;
+  }
+  get data() {
+    return {
+      datasets: [
+        {
+          type: "bar",
+          label: "Время работы",
+          data: this.workedRanges(),
+          backgroundColor: "rgba(140, 192, 224, 1)",
+          barPercentage: 1,
+          order: 10,
+          hidden: false,
         },
-        plugins: {
-          annotation: {
-            annotations: {
-              startLine: {
-                type: "line",
-                yMin: DrowChart.baseStart.toMillis(),
-                yMax: DrowChart.baseStart.toMillis(),
-                borderColor: "rgba(76, 175, 80, 1)",
-                borderWidth: 3,
-                drawTime: "beforeDraw",
-              },
+        {
+          type: "bar",
+          label: "Выходные",
+          data: this.weekends(),
+          backgroundColor: "rgba(0, 0, 0, 0.1)",
+          categoryPercentage: 1.0,
+          barPercentage: 1.0,
+          order: -1,
+          hidden: false,
+        },
+      ],
+    } as ChartData;
+  }
 
-              endLine: {
-                type: "line",
-                yMin: DrowChart.baseEnd.toMillis(),
-                yMax: DrowChart.baseEnd.toMillis(),
-                borderColor: "rgba(76, 175, 80, 1)",
-                borderWidth: 3,
-                drawTime: "beforeDraw",
-              },
-
-              nowLine: {
-                type: "line",
-                yMin: DateTime.now()
-                  .diff(DateTime.fromObject({ hour: 0 }))
-                  .toMillis(),
-                yMax: DateTime.now()
-                  .diff(DateTime.fromObject({ hour: 0 }))
-                  .toMillis(),
-                borderColor: "rgba(234, 56, 56, 1)",
-                borderWidth: 1,
-                drawTime: "afterDraw",
-              },
+  get options() {
+    return {
+      maintainAspectRatio: false,
+      //responsive: false,
+      scales: {
+        x: {
+          adapters: {
+            date: {
+              zone: "UTC+3",
+              setZone: true,
             },
           },
-
-          legend: {
-            onClick: () => {},
-          },
-          tooltip: {
-            callbacks: {
-              label: function (context) {
-                const raw = context.raw as { y: [DateTime, DateTime] };
-
-                if (!Array.isArray(raw.y) || raw.y.length !== 2) {
-                  return "Invalid data";
-                }
-
-                const [start, end] = raw.y;
-
-                const startStr = start.toUTC().toFormat("HH:mm");
-                const endStr = end.toUTC().toFormat("HH:mm");
-                const diff = end.diff(start).toFormat("h:mm")
-
-                return ` ${context.dataset.label}: ${startStr} - ${endStr} (${diff})`;
-              },
+          type: "time",
+          time: {
+            unit: "day",
+            displayFormats: {
+              day: "dd",
             },
-            filter: function (tooltipItem) {
-              // tooltipItem.datasetIndex — индекс набора данных
-              return tooltipItem.datasetIndex !== 1; // отключить тултип для второго набора
+            tooltipFormat: "DD",
+          },
+          title: {
+            display: false,
+            text: "Дата",
+          },
+          stacked: true,
+        },
+        y: {
+          adapters: {
+            date: {
+              zone: "UTC",
+              setZone: true,
+            },
+          },
+          type: "time",
+          time: {
+            unit: "hour",
+            displayFormats: {
+              hour: "HH:mm",
+            },
+            tooltipFormat: "HH:mm",
+          },
+          title: {
+            display: false,
+            text: "Время",
+          },
+          min: this.lowerLimit.toMillis(),
+          max: this.upperLimit.toMillis(),
+        },
+      },
+      plugins: {
+        annotation: {
+          annotations: {
+            startLine: {
+              type: "line",
+              yMin: MainChart.baseStart.toMillis(),
+              yMax: MainChart.baseStart.toMillis(),
+              borderColor: "rgba(76, 175, 80, 1)",
+              borderWidth: 3,
+              drawTime: "beforeDraw",
+            },
+
+            endLine: {
+              type: "line",
+              yMin: MainChart.baseEnd.toMillis(),
+              yMax: MainChart.baseEnd.toMillis(),
+              borderColor: "rgba(76, 175, 80, 1)",
+              borderWidth: 3,
+              drawTime: "beforeDraw",
+            },
+
+            nowLine: {
+              type: "line",
+              yMin: DateTime.now()
+                .diff(DateTime.fromObject({ hour: 0 }))
+                .toMillis(),
+              yMax: DateTime.now()
+                .diff(DateTime.fromObject({ hour: 0 }))
+                .toMillis(),
+              borderColor: "rgba(234, 56, 56, 1)",
+              borderWidth: 1,
+              drawTime: "afterDraw",
             },
           },
         },
+
+        legend: {
+          onClick: () => {},
+        },
+        tooltip: {
+          callbacks: {
+            label: function (context: {
+              raw: { y: [DateTime, DateTime] };
+              dataset: { label: any };
+            }) {
+              const raw = context.raw as { y: [DateTime, DateTime] };
+
+              if (!Array.isArray(raw.y) || raw.y.length !== 2) {
+                return "Invalid data";
+              }
+
+              const [start, end] = raw.y;
+
+              const startStr = start.toUTC().toFormat("HH:mm");
+              const endStr = end.toUTC().toFormat("HH:mm");
+              const diff = end.diff(start).toFormat("h:mm");
+
+              return ` ${context.dataset.label}: ${startStr} - ${endStr} (${diff})`;
+            },
+          },
+          filter: function (tooltipItem: { datasetIndex: number }) {
+            // tooltipItem.datasetIndex — индекс набора данных
+            return tooltipItem.datasetIndex !== 1; // отключить тултип для второго набора
+          },
+        },
       },
-    });
+    } as ChartOptions;
   }
 }

@@ -2,14 +2,12 @@ import { DateTime, Duration } from "luxon";
 import { waitForElm, createElement } from "./DOMUtils";
 import { abs } from "./Formating";
 import { MonthInfo as MonthInfo } from "./Model/MonthInfo";
-import { DrowChart } from "./View/DrowChart";
-import { createApp } from 'vue'
-import "../resources/style.css"
+import { createApp } from "vue";
+import "../resources/style.css";
 import Root from "./Layouts/Root.vue";
 
 console.log("Hello user!");
-console.log(localStorage)
-
+console.log(localStorage);
 
 function GetFilterDate() {
   return DateTime.fromObject({
@@ -19,7 +17,6 @@ function GetFilterDate() {
     ),
   });
 }
-
 
 class CRME {
   public monthInfo?: MonthInfo;
@@ -72,7 +69,7 @@ class CRME {
     var canvas = createElement("canvas", {
       id: "main-chart-canvas",
     }) as HTMLCanvasElement;
-    new DrowChart(canvas, this.monthInfo.days).drow();
+    //new MainChart(canvas, this.monthInfo.days).drow();
     var mainChart = createElement("div", { id: "main-chart" });
     mainChart.appendChild(canvas);
 
@@ -84,11 +81,12 @@ class CRME {
     chartsAndTables.appendChild(mainChart);
 
     // Mount в body, просто для теста
-    const el = document.createElement('div')
-    mainDiv.insertAdjacentElement("afterend",el)
+    const el = createElement("div", {}, { width: "100%" });
+    mainDiv.insertAdjacentElement("afterend", el);
 
-    createApp(Root).mount(el)
-
+    createApp(Root, {
+      monthInfo: this.monthInfo,
+    }).mount(el);
   }
   public dump = () => {
     return JSON.stringify(this.monthInfo);
@@ -120,6 +118,5 @@ async function init() {
     }
   });
 }
-
 
 init();

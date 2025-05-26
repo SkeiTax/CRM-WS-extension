@@ -18,6 +18,7 @@ const props = defineProps<{
 }>()
 const canvasRef = ref<HTMLCanvasElement | null>(null)
 
+
 onMounted(() => {
   if (canvasRef.value) {
     const ctx = canvasRef.value.getContext('2d')
@@ -34,10 +35,6 @@ onMounted(() => {
 </script>
 
 <style scoped>
-.canvas-comp{
-    width: 100%;
-}
-
 .canvas-content {
   height: 100%;
   width: 100%;
