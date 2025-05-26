@@ -3,12 +3,9 @@ import { waitForElm, createElement } from "./DOMUtils";
 import { abs } from "./Formating";
 import { MonthInfo as MonthInfo } from "./Model/MonthInfo";
 import { DrowChart } from "./View/DrowChart";
-
 import { createApp } from 'vue'
-import Button from "./Components/Button.vue";
-
 import "../resources/style.css"
-import Root from "./Components/Root.vue";
+import Root from "./Layouts/Root.vue";
 
 console.log("Hello user!");
 console.log(localStorage)

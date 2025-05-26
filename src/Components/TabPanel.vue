@@ -1,7 +1,7 @@
 <template>
   <div class="tab-panel">
     <div class="tab-headers">
-      <button v-for="(tab, index) in tabs" :key="index" :selected="selectedIndex === index" @click="select(index)">
+      <button v-for="(tab, index) in tabs" :key="index" :selected="selectedIndexProperty.value === index" @click="select(index)">
         {{ tab.title }}
       </button>
     </div>
@@ -13,12 +13,11 @@
 </template>
 
 <script setup lang="ts">
-import Tab from './Tab.vue'
 import { ref, watch, provide, PropType } from 'vue'
 import { IDependencyProperty } from '../Domain/DependencyProperty'
 
 const props = defineProps({
-  selectedIndex: { type: Object as PropType<IDependencyProperty<number>>, default: undefined },
+  selectedIndexProperty: { type: Object as PropType<IDependencyProperty<number>>, default: undefined },
 })
 
 
@@ -28,9 +27,9 @@ const emit = defineEmits([
 ])
 
 const tabs = ref(Array<any>())
-const selectedIndexProperty = ref(props.selectedIndex)
+const selectedIndexProperty = ref(props.selectedIndexProperty)
 
-watch(() => props.selectedIndex, (newVal) => {
+watch(() => props.selectedIndexProperty, (newVal) => {
   if (newVal === undefined) return;
   selectedIndexProperty.value = newVal
 })
@@ -60,6 +59,7 @@ provide('selectedIndexProperty', selectedIndexProperty)
 
 .tab-content {
   border-top: 1px solid #ddd;
+  padding-top: 1em;
 }
 
 .tab-headers {
