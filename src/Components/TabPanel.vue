@@ -1,7 +1,8 @@
 <template>
   <div class="tab-panel">
     <div class="tab-headers">
-      <button v-for="(tab, index) in tabs" :key="index" :selected="selectedIndexProperty.value === index" @click="select(index)">
+      <button v-for="(tab, index) in tabs" :key="index" :selected="selectedIndexProperty.value === index"
+        @click="select(index)">
         {{ tab.title }}
       </button>
     </div>
@@ -38,7 +39,7 @@ function select(index: number) {
   if (selectedIndexProperty.value)
     selectedIndexProperty.value.value = index
 
-  emit('update:selectedIndexProperty', index)
+  //emit('update:selectedIndexProperty', index)
 }
 
 function registerTab(tab: any) {
@@ -54,12 +55,12 @@ provide('selectedIndexProperty', selectedIndexProperty)
 
 <style scoped>
 .tab-panel {
-  margin-top: 1em;
+  margin-top: 20px;
 }
 
 .tab-content {
   border-top: 1px solid #ddd;
-  padding-top: 1em;
+  padding-top: 10px;
 }
 
 .tab-headers {

@@ -1,14 +1,25 @@
+import { ref, Ref, UnwrapRef } from "vue";
+
 export interface IDependencyProperty<T> {
   key: string;
-  value: T;
+  get value(): T;
+  set value(_: T);
 }
 
 export class DependencyProperty<T> implements IDependencyProperty<T> {
   public key: string;
-  public value: T;
+  private _value: T;
 
-  constructor(key: string, value: T){
-    this.key = key
-    this.value = value
+  constructor(key: string, value: T) {
+    this.key = key;
+    this._value = value;
+  }
+
+  public get value() {
+    return this._value;
+  }
+
+  public set value(_: T) {
+    this._value = _;
   }
 }

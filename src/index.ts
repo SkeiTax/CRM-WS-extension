@@ -1,13 +1,12 @@
-import { DateTime, Duration } from "luxon";
+import { DateTime } from "luxon";
 import { waitForElm, createElement } from "./DOMUtils";
-import { abs } from "./Formating";
 import { MonthInfo as MonthInfo } from "./Model/MonthInfo";
 import { createApp } from "vue";
 import "../resources/style.css";
 import Root from "./Layouts/Root.vue";
+import { WorkTimeVM } from "./Model/WorkTimeVM";
 
 console.log("Hello user!");
-console.log(localStorage);
 
 function GetFilterDate() {
   return DateTime.fromObject({
@@ -29,63 +28,30 @@ class CRME {
 
     this.monthInfo = new MonthInfo(table, filterDate);
 
-    var workDaysTracker = await waitForElm("#MainDiv > .crm-tooltip");
-
-    var workingDaysCount = this.monthInfo.WorkingDaysToday.length;
-
-    var expectedOperating = Duration.fromObject({ hour: workingDaysCount * 8 });
-
-    var totalDelta = this.monthInfo.TotalWorkDuration.minus(expectedOperating);
-
-    var totalDeltaTimePrefix =
-      totalDelta.toMillis() < 0 ? "Недоработка" : "Переработка";
-
-    console.log(totalDeltaTimePrefix, abs(totalDelta).toFormat("hh:mm"));
-    console.log(DateTime.now().zone);
-
-    var totalDeltaElement = createElement(
-      "span",
-      {},
-      { color: "#aaa", fontSize: "0.8em" }
-    );
-    totalDeltaElement.textContent = `(${totalDeltaTimePrefix}: ${abs(
-      totalDelta
-    ).toFormat("hh:mm")})`;
-
-    workDaysTracker.appendChild(totalDeltaElement);
-
     var mainDiv = await waitForElm("#MainDiv");
 
-    var mainTableDiv = createElement("div", { id: "main-table" });
+    const userSNP = (mainDiv.children[0] as HTMLSpanElement).innerText;
+    const shortWorkInfoHTML = (
+      mainDiv.children[mainDiv.children.length - 2] as HTMLDivElement
+    ).innerHTML;
 
     var workInfo = createElement("div", { id: "work-info" });
     Array.from(mainDiv.children).forEach((child) => {
       workInfo.appendChild(child);
     });
 
-    mainTableDiv.appendChild(workInfo);
-    mainTableDiv.appendChild(table);
+    const wokrTimeVM = new WorkTimeVM(
+      this.monthInfo,
+      userSNP,
+      shortWorkInfoHTML
+    );
 
-    var canvas = createElement("canvas", {
-      id: "main-chart-canvas",
-    }) as HTMLCanvasElement;
-    //new MainChart(canvas, this.monthInfo.days).drow();
-    var mainChart = createElement("div", { id: "main-chart" });
-    mainChart.appendChild(canvas);
-
-    var chartsAndTables = createElement("div", { id: "charts-and-tables" });
-
-    mainDiv.appendChild(chartsAndTables);
-
-    chartsAndTables.appendChild(mainTableDiv);
-    chartsAndTables.appendChild(mainChart);
-
-    // Mount в body, просто для теста
     const el = createElement("div", {}, { width: "100%" });
-    mainDiv.insertAdjacentElement("afterend", el);
+    mainDiv.appendChild(el);
 
     createApp(Root, {
-      monthInfo: this.monthInfo,
+      workTimeVM: wokrTimeVM,
+      mainTable: table,
     }).mount(el);
   }
   public dump = () => {

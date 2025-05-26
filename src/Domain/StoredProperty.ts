@@ -1,43 +1,47 @@
-import { IDependencyProperty } from "./DependencyProperty";
+import { DependencyProperty } from "./DependencyProperty";
 
-export class StoredProperty<T> implements IDependencyProperty<T> {
+export class StoredProperty<T> extends DependencyProperty<T> {
   public key: string;
   private defaultValue: T;
 
   constructor(key: string, defaultValue: T) {
+    super(key, defaultValue);
     this.key = key;
     this.defaultValue = defaultValue;
   }
 
-  get value(): T {
+  override get value(): T {
     const raw = localStorage.getItem(this.key);
     if (raw === null) {
-      // If key is not present, store default value
-      this.save(this.defaultValue);
+      super.value = this.defaultValue;
       return this.defaultValue;
     }
 
     try {
       return JSON.parse(raw) as T;
     } catch (e) {
-      console.warn(`StoredProperty: Failed to parse value for key "${this.key}"`, e);
+      console.warn(
+        `StoredProperty: Failed to parse value for key "${this.key}"`,
+        e
+      );
       return this.defaultValue;
     }
   }
 
-  set value(newValue: T) {
-    this.save(newValue);
+  override set value(_: T) {
+    super.value = _;
+    this.save(_);
   }
 
-  private save(value: T): void {
+  private save = (value: T) => {
     localStorage.setItem(this.key, JSON.stringify(value));
-  }
+  };
 
-  public clear(): void {
+  public clear = () => {
     localStorage.removeItem(this.key);
-  }
+  };
 
-  public exists(): boolean {
+  public exists = () => {
     return localStorage.getItem(this.key) !== null;
-  }
+  };
 }
