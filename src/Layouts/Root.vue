@@ -1,21 +1,15 @@
 <template>
+  
+  <div class="header">
+    <div class="user-snp">{{ props.workTimeVM?.userSNP }}</div>
+    <div class="crm-tooltip" :innerHTML="props.workTimeVM?.shortWorkInfoHTML" />
+    <span class="delta-time">({{ props.workTimeVM?.displayTotalDeltaTime }})</span>
+  </div>
   <TabPanel id="vue-main" :selectedIndexProperty="storedProperty">
     <Tab title="Календарь">
-      <div class="header">
-        <span>{{ props.workTimeVM?.userSNP }}</span>
-        <dif class="crm-tooltip margin-lr" :innerHTML="props.workTimeVM?.shortWorkInfoHTML" />
-        <span class="delta-time">({{ props.workTimeVM?.displayTotalDeltaTime }})</span>
-      </div>
-
       <div ref="mainTabelContainer" />
     </Tab>
     <Tab title="График">
-      <div class="header chart">
-        <span>{{ props.workTimeVM?.userSNP }}</span>
-        <dif class="crm-tooltip margin-lr" :innerHTML="props.workTimeVM?.shortWorkInfoHTML" />
-        <span class="delta-time">({{ props.workTimeVM?.displayTotalDeltaTime }})</span>
-      </div>
-
       <Chart class="test-chart" :type="mainChartVM?.type ?? 'bar'"
         :data="mainChartVM?.data ?? { labels: [], datasets: [{ type: 'bar', label: '', data: [] }] }"
         :options="mainChartVM?.options ?? undefined" />
@@ -74,16 +68,16 @@ watch(() => props.mainTable, insert)
   font-size: 0.9em;
 }
 
-.tab-content .margin-lr.crm-tooltip {
-  margin-left: 0.5em;
-  margin-right: 0.5em;
+.header .crm-tooltip {
+  display: inline;
 }
 
 .header {
   margin-bottom: 1em;
+  font-size: 1.5rem;
 }
 
-.header.chart {
-  font-size: 1.5rem;
+.user-snp {
+  font-weight: 600;
 }
 </style>
