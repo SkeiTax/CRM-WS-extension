@@ -116,6 +116,7 @@ export class MonthInfo {
       var cday = this.days.findLast((day) => day.number == DateTime.now().day);
       if (cday != undefined) {
         cday.sessions.forEach((session) => {
+          if (session.ranges === undefined) return;
           if (session.ranges[session.ranges.length - 1].end === undefined) {
             session.ranges[session.ranges.length - 1].end = DateTime.now();
           }
@@ -135,7 +136,9 @@ export class MonthInfo {
     var range = e.children[0].textContent?.match(timeRangeRegex)
       ?.groups as Range;
 
-    var beginTime = range?.begin?.match(timeHHMMRange)
+    if (range === undefined) return;
+
+    var beginTime = range.begin?.match(timeHHMMRange)
       ?.groups as unknown as Time;
     if (beginTime != undefined) {
       beginTime.year = date.year;
@@ -145,7 +148,7 @@ export class MonthInfo {
     var begin =
       beginTime != undefined ? DateTime.fromObject(beginTime) : undefined;
 
-    var endTime = range?.end?.match(timeHHMMRange)?.groups as unknown as Time;
+    var endTime = range.end?.match(timeHHMMRange)?.groups as unknown as Time;
     if (endTime != undefined) {
       endTime.year = date.year;
       endTime.month = date.month;
@@ -159,7 +162,6 @@ export class MonthInfo {
       end?.toSeconds() < begin?.toSeconds()
     ) {
       end = end.plus({ days: 1 });
-      //console.log(begin.toString(), end.toString());
     }
 
     if (begin != undefined || end != undefined)
