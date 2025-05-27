@@ -82,6 +82,19 @@ export class MainChart {
         };
       });
   }
+
+  get todayData(){
+    const {year, month, day} = DateTime.now()
+    return DateTime.fromObject({year: year, month: month, day: day})
+  }
+
+  today() {
+    return [{
+      x: this.todayData.toISO(),
+      y: [this.lowerLimit.toMillis(), this.upperLimit.toMillis()],
+    }];
+  }
+
   get type() {
     return undefined as unknown as ChartType;
   }
@@ -94,17 +107,28 @@ export class MainChart {
           data: this.workedRanges(),
           backgroundColor: "rgba(140, 192, 224, 1)",
           barPercentage: 1,
-          order: 10,
+          order: -10,
           hidden: false,
+        },
+        {
+          type: "bar",
+          label: "Сегодня",
+          data: this.today(),
+          backgroundColor: "rgba(225, 246, 205, 1)",
+          categoryPercentage: 1.0,
+          barPercentage: 0.95,
+          order: 5,
+          hidden: !(this.daysDate[0].date.month === DateTime.now().month &&
+                  this.daysDate[0].date.year  === DateTime.now().year),
         },
         {
           type: "bar",
           label: "Выходные",
           data: this.weekends(),
-          backgroundColor: "rgba(0, 0, 0, 0.1)",
+          backgroundColor: "rgba(225, 235, 242, 1)",
           categoryPercentage: 1.0,
-          barPercentage: 0.9999,
-          order: -1,
+          barPercentage: 0.95,
+          order: 10,
           hidden: false,
         },
       ],
@@ -175,7 +199,7 @@ export class MainChart {
               yMax: MainChart.baseStart.toMillis(),
               borderColor: "rgba(76, 175, 80, 1)",
               borderWidth: 1,
-              drawTime: "beforeDraw",
+              drawTime: 'afterDatasetsDraw',
             },
 
             endLine: {
@@ -184,7 +208,7 @@ export class MainChart {
               yMax: MainChart.baseEnd.toMillis(),
               borderColor: "rgba(76, 175, 80, 1)",
               borderWidth: 1,
-              drawTime: "beforeDraw",
+              drawTime: "afterDatasetsDraw",
             },
 
             nowLine: {
@@ -197,7 +221,7 @@ export class MainChart {
                 .toMillis(),
               borderColor: "rgba(234, 56, 56, 1)",
               borderWidth: 1,
-              drawTime: "afterDraw",
+              drawTime: "afterDatasetsDraw",
             },
           },
         },
@@ -218,6 +242,8 @@ export class MainChart {
               }
 
               const [start, end] = raw.y;
+              
+              if (start === undefined || end === undefined) return undefined
 
               const startStr = start.toUTC().toFormat("HH:mm");
               const endStr = end.toUTC().toFormat("HH:mm");
@@ -228,7 +254,7 @@ export class MainChart {
           },
           filter: function (tooltipItem: { datasetIndex: number }) {
             // tooltipItem.datasetIndex — индекс набора данных
-            return tooltipItem.datasetIndex !== 1; // отключить тултип для второго набора
+            return tooltipItem.datasetIndex === 0; // отключить тултип для второго набора
           },
         },
       },
