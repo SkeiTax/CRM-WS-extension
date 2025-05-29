@@ -59,6 +59,7 @@ export class MainChart {
             range.end?.minus(day.date.toMillis()),
           ],
           x: day.date.toISO(),
+          total: day.duration
         };
         data.push(r);
       });
@@ -232,10 +233,10 @@ export class MainChart {
         tooltip: {
           callbacks: {
             label: function (context: {
-              raw: { y: [DateTime, DateTime] };
+              raw: { y: [DateTime, DateTime], total: Duration };
               dataset: { label: any };
             }) {
-              const raw = context.raw as { y: [DateTime, DateTime] };
+              const raw = context.raw as { y: [DateTime, DateTime], total: Duration };
 
               if (!Array.isArray(raw.y) || raw.y.length !== 2) {
                 return "Invalid data";
@@ -249,7 +250,10 @@ export class MainChart {
               const endStr = end.toUTC().toFormat("HH:mm");
               const diff = end.diff(start).toFormat("h:mm");
 
-              return ` ${context.dataset.label}: ${startStr} - ${endStr} (${diff})`;
+              var out: string = '';
+              out = ` ${context.dataset.label}${raw.total?.toFormat(' (h:mm)') ?? ""}: ${startStr} - ${endStr} (${diff})`
+
+              return out;
             },
           },
           filter: function (tooltipItem: { datasetIndex: number }) {
