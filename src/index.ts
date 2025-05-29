@@ -31,9 +31,10 @@ class CRME {
     var mainDiv = await waitForElm("#MainDiv");
 
     const userSNP = (mainDiv.children[0] as HTMLSpanElement).innerText;
-    const shortWorkInfoHTML = (
+    const matchs = (
       mainDiv.children[mainDiv.children.length - 2] as HTMLDivElement
-    ).innerHTML;
+    ).innerHTML.match(/\((.*)\)([\W\w]*)/)
+    const shortWorkInfoHTML = `${matchs?.[1]}${matchs?.[2]}`;
 
     var workInfo = createElement("div", { id: "work-info" });
     Array.from(mainDiv.children).forEach((child) => {

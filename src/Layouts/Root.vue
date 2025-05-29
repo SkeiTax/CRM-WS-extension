@@ -2,8 +2,8 @@
   
   <div class="header">
     <div class="user-snp">{{ props.workTimeVM?.userSNP }}</div>
-    <div class="crm-tooltip" :innerHTML="props.workTimeVM?.shortWorkInfoHTML" />
-    <span class="delta-time">({{ props.workTimeVM?.displayTotalDeltaTime }})</span>
+    <div class="crm-tooltip" :innerHTML="props.workTimeVM?.shortWorkInfoHTML" /> / 
+    <span class="delta-time">{{ props.workTimeVM?.displayTotalDeltaTime }}</span>
   </div>
   <TabPanel id="vue-main" :selectedIndexProperty="storedProperty">
     <Tab title="Календарь">
@@ -65,7 +65,6 @@ watch(() => props.mainTable, insert)
 
 .delta-time {
   color: #aaa;
-  font-size: 0.9em;
 }
 
 .header .crm-tooltip {
@@ -74,7 +73,7 @@ watch(() => props.mainTable, insert)
 
 .header {
   margin-bottom: 1em;
-  font-size: 1.5rem;
+  font-size: 1.3rem;
 }
 
 .user-snp {
