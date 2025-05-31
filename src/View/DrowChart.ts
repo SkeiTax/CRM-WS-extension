@@ -9,6 +9,7 @@ import { DayInfo } from "../Model/DayInfo";
 import { DateTime, Duration } from "luxon";
 import annotationPlugin from "chartjs-plugin-annotation";
 import "chartjs-adapter-luxon";
+import { ManualSessionRange, ManualSessionType} from '../Model/ManualSessionRange'
 
 Chart.register(annotationPlugin);
 
@@ -73,7 +74,7 @@ export class MainChart {
     return data;
   }
 
-  weekends(): unknown {
+  private weekends(): unknown {
     return this.daysDate
       .filter((day) => day.isWeekend)
       .map((day) => {
@@ -84,12 +85,36 @@ export class MainChart {
       });
   }
 
-  get todayData(){
+  private *breaksGenerator() {
+    const workedDaysWithBreaks = this.daysDate.filter((day) => day.duration.toMillis() != 0 && day.mergedRanges.length > 1);
+    for (var k = 0; k < workedDaysWithBreaks.length; k++) {
+      const day = workedDaysWithBreaks[k];
+      for (var i = 0; i < day.mergedRanges.length - 1; i++) {
+        const currentRange = day.mergedRanges[i];
+        const nextRange = day.mergedRanges[i + 1];
+        if (nextRange.begin === undefined || currentRange.end === undefined) continue;
+        yield {
+          y: [
+            currentRange.end?.minus(day.date.toMillis()),
+            nextRange.begin?.minus(day.date.toMillis()),
+          ],
+          x: day.date.toISO(),
+          total: day.duration
+        };
+      }
+    }
+  }
+
+  private breaks() {
+    return Array.from(this.breaksGenerator());
+  }
+
+  private get todayData(){
     const {year, month, day} = DateTime.now()
     return DateTime.fromObject({year: year, month: month, day: day})
   }
 
-  today() {
+  private today() {
     return [{
       x: this.todayData.toISO(),
       y: [this.lowerLimit.toMillis(), this.upperLimit.toMillis()],
@@ -109,6 +134,15 @@ export class MainChart {
           backgroundColor: "rgba(140, 192, 224, 1)",
           barPercentage: 1,
           order: -10,
+          hidden: false,
+        },
+        {
+          type: "bar",
+          label: "Перерыв",
+          data: this.breaks(),
+          backgroundColor: "rgb(247, 239, 173)",
+          barPercentage: 1,
+          order: -9,
           hidden: false,
         },
         {
@@ -136,7 +170,7 @@ export class MainChart {
     } as ChartData;
   }
 
-  get options() {
+  get options(){
     return {
       maintainAspectRatio: false,
       //responsive: false,
@@ -235,6 +269,7 @@ export class MainChart {
             label: function (context: {
               raw: { y: [DateTime, DateTime], total: Duration };
               dataset: { label: any };
+              datasetIndex: number;
             }) {
               const raw = context.raw as { y: [DateTime, DateTime], total: Duration };
 
@@ -251,16 +286,30 @@ export class MainChart {
               const diff = end.diff(start).toFormat("h:mm");
 
               var out: string = '';
-              out = ` ${context.dataset.label}${raw.total?.toFormat(' (h:mm)') ?? ""}: ${startStr} - ${endStr} (${diff})`
+              out = ` ${context.dataset.label}${context.datasetIndex === 0 ? raw.total?.toFormat(' (h:mm)') ?? "" : ""}: ${startStr} - ${endStr} (${diff})`
 
               return out;
             },
           },
           filter: function (tooltipItem: { datasetIndex: number }) {
-            // tooltipItem.datasetIndex — индекс набора данных
-            return tooltipItem.datasetIndex === 0; // отключить тултип для второго набора
+            return tooltipItem.datasetIndex === 0 || tooltipItem.datasetIndex === 1; // отключить тултип для второго набора
           },
         },
+      },
+      onClick: (event, elements) => {
+        if (elements.length > 0) {
+          const element = elements[0]; // Первый найденный элемент
+          const datasetIndex = element.datasetIndex; // Индекс датасета
+          const dataIndex = element.index; // Индекс элемента внутри датасета
+          if (element.datasetIndex === 1){
+            const value = this.breaks()[element.index] as {x:string, y: DateTime[]}
+            const date = DateTime.fromISO(value.x)
+            const start = value.y[0].plus(date.toMillis())
+            const end = value.y[1].plus(date.toMillis())
+            const manualSessionRange = new ManualSessionRange(start, end, ManualSessionType.manual)
+            console.log('Clicked on bar: datasetIndex =', datasetIndex, ',dataIndex =', dataIndex, ', value =', value, ', manualSessionRange =', manualSessionRange);
+          }
+        }
       },
     } as ChartOptions;
   }
