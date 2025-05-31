@@ -66,7 +66,8 @@ async function init() {
 
   filter.addEventListener("change", (event: Event) => {
     const target = event.target as HTMLSelectElement;
-    if (target && target.tagName === "SELECT") {
+    if (target && target.tagName === "SELECT" && 
+      document.querySelector('#MainDiv')?.innerHTML !== 'Загруска...') {
       crme.init();
       console.log(crme);
     }
