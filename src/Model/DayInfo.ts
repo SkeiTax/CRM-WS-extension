@@ -66,7 +66,7 @@ export class DayInfo {
       return (
         this.sessions.find(
           (session, sessionIndex) =>
-            indexInSessions[sessionIndex] < session.ranges.length
+            indexInSessions[sessionIndex] < session.closedRanges.length
         ) !== undefined
       );
     };
@@ -74,7 +74,7 @@ export class DayInfo {
     const findNextSessionIndex = () => {
       if (this.sessions.length < 2) return 0;
       var startRanges = this.sessions.map(
-        (session, sessionIndex) => session.ranges[indexInSessions[sessionIndex]]
+        (session, sessionIndex) => session.closedRanges[indexInSessions[sessionIndex]]
       );
       var sortedRanges = Array.from(startRanges).sort(TimeRange.compare);
       var index = startRanges.findIndex((range) => range == sortedRanges[0]);
@@ -89,7 +89,7 @@ export class DayInfo {
         if (
           !TimeRange.RangeCollision(
             range,
-            this.sessions[currentSessionIndex].ranges[
+            this.sessions[currentSessionIndex].closedRanges[
               indexInSessions[currentSessionIndex]
             ]
           )
@@ -105,7 +105,7 @@ export class DayInfo {
 
         range = TimeRange.Merge(
           range,
-          this.sessions[currentSessionIndex].ranges[
+          this.sessions[currentSessionIndex].closedRanges[
             indexInSessions[currentSessionIndex]
           ]
         );
