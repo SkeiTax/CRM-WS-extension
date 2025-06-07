@@ -76,13 +76,17 @@ export class MainChart {
 
   private weekends(): unknown {
     return this.daysDate
-      .filter((day) => day.isWeekend)
+      .filter(day => day.isWeekend)
       .map((day) => {
         return {
           x: day.date.toISO(),
           y: [this.lowerLimit.toMillis(), this.upperLimit.toMillis()],
         };
-      });
+      })
+      .concat([{
+          x: this.daysDate[this.daysDate.length-1].date.toISO(),
+          y: [this.upperLimit.toMillis(), this.upperLimit.toMillis()],
+      }]);
   }
 
   private *breaksGenerator() {
