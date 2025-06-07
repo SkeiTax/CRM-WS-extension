@@ -26,6 +26,12 @@ export class MonthInfo {
     });
   }
 
+  public get DeltaWorkTime() {
+    return Duration.fromObject({
+      hour: 8 * this.WorkingDaysToday.length,
+    }).minus(this.TotalWorkDuration);
+  }
+
   /**
    * Рабочие дни в месяце
    */

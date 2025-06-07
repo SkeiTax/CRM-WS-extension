@@ -1,5 +1,5 @@
 import { DateTime } from "luxon";
-import { waitForElm, createElement } from "./DOMUtils";
+import { waitForElm, createElement } from "./Utils/DOMUtils";
 import { MonthInfo as MonthInfo } from "./Model/MonthInfo";
 import { createApp } from "vue";
 import "../resources/style.css";

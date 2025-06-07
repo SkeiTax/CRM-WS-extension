@@ -1,10 +1,4 @@
-import { ref, Ref, UnwrapRef } from "vue";
-
-export interface IDependencyProperty<T> {
-  key: string;
-  get value(): T;
-  set value(_: T);
-}
+import { IDependencyProperty } from "../Interfaces/IDependencyProperty";
 
 export class DependencyProperty<T> implements IDependencyProperty<T> {
   public key: string;

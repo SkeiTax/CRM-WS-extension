@@ -6,7 +6,7 @@
 
 <script setup lang="ts">
 import { inject, ref, onMounted, computed, Ref } from 'vue'
-import { IDependencyProperty } from '../Domain/DependencyProperty';
+import { IDependencyProperty } from "../Interfaces/IDependencyProperty";
 
 const props = defineProps({
   title: String

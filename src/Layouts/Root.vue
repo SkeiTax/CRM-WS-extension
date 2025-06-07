@@ -11,7 +11,7 @@
     </Tab>
     <Tab title="График">
       <Chart class="test-chart" :type="mainChartVM?.type ?? 'bar'"
-        :data="mainChartVM?.data ?? { labels: [], datasets: [{ type: 'bar', label: '', data: [] }] }"
+        :data="mainChartVM?.data ?? (() => { return { labels: [], datasets: [{ type: 'bar', label: '', data: [] }] }})"
         :options="mainChartVM?.options ?? undefined" />
     </Tab>
   </TabPanel>
@@ -23,7 +23,7 @@ import Tab from '../Components/Tab.vue'
 import { StoredProperty } from '../Domain/StoredProperty'
 import Chart from '../Components/Chart.vue'
 import { WorkTimeVM } from '../Model/WorkTimeVM'
-import { MainChart } from '../View/DrowChart'
+import { MainChart } from '../Model/DrowChart'
 import { onMounted, ref, watch } from 'vue'
 
 const props = defineProps({
@@ -32,7 +32,7 @@ const props = defineProps({
 })
 
 
-const mainChartVM = ref(props.workTimeVM ? new MainChart(props.workTimeVM.monthInfo.days) : null)
+const mainChartVM = ref(props.workTimeVM ? new MainChart(props.workTimeVM.monthInfo) : null)
 
 const mainTabelContainer = ref<HTMLElement | null>(null)
 const crmTooltip = ref<HTMLDivElement | null>(null)

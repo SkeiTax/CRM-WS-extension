@@ -1,6 +1,6 @@
 import { MonthInfo } from "./MonthInfo";
 import { Duration } from "luxon";
-import { abs } from "../Formating";
+import { abs } from "../Utils/Formating";
 
 export class WorkTimeVM {
   private _monthInfo: MonthInfo;

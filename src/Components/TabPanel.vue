@@ -15,7 +15,7 @@
 
 <script setup lang="ts">
 import { ref, watch, provide, PropType } from 'vue'
-import { IDependencyProperty } from '../Domain/DependencyProperty'
+import { IDependencyProperty } from "../Interfaces/IDependencyProperty"
 
 const props = defineProps({
   selectedIndexProperty: { type: Object as PropType<IDependencyProperty<number>>, default: undefined },
