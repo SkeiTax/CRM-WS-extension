@@ -11,14 +11,12 @@ import { DayInfo } from "./DayInfo";
 import { DateTime, Duration } from "luxon";
 import annotationPlugin from "chartjs-plugin-annotation";
 import "chartjs-adapter-luxon";
-import {
-  ManualSessionRange,
-  ManualSessionType,
-} from "./ManualSessionRange";
+import { ManualSessionRange, ManualSessionType } from "./ManualSessionRange";
 import { CanvasUtils } from "../Utils/CanvasUtils";
 import { AnyObject } from "chart.js/dist/types/basic";
 import { IHasBackground } from "../Interfaces/IHasBackground";
 import { MonthInfo } from "./MonthInfo";
+import { toHandlers } from "vue";
 
 Chart.register(annotationPlugin);
 
@@ -56,12 +54,17 @@ export class MainChart {
     );
   }
 
-  private get daysDate(){
+  private get daysDate() {
     return this.monthInfo.days;
   }
 
   private workedRanges(ctx: CanvasRenderingContext2D) {
-    var data: { y: (DateTime | undefined)[]; x: string | null; total: Duration; background: string | CanvasPattern | null }[] = [];
+    var data: {
+      y: (DateTime | undefined)[];
+      x: string | null;
+      total: Duration;
+      background: string | CanvasPattern | null;
+    }[] = [];
 
     this.monthInfo.DaysWorked.forEach((day) => {
       day.mergedRanges.forEach((range) => {
@@ -78,25 +81,38 @@ export class MainChart {
       });
     });
 
-    if (this.monthInfo.DeltaWorkTime.toMillis()>0)
-    {
-      var lastWorkedDay = this.monthInfo.DaysWorked[this.monthInfo.DaysWorked.length - 1]
-      var ms = Duration.fromMillis(Math.min(
-        this.monthInfo.DeltaWorkTime.toMillis(), 
-        Duration.fromObject({hour: 8}).minus(lastWorkedDay.duration).toMillis()
-      ))
+    if (this.monthInfo.DeltaWorkTime.toMillis() > 0) {
+      var lastWorkedDay =
+        this.monthInfo.days
+          .filter(
+            (day) =>
+              (!day.isWeekend || day.duration.toMillis() > 0) &&
+              day.date <= this.todayData
+          )
+          .at(-1) ??
+        new DayInfo(this.todayData, [], Duration.fromMillis(0), false);
+      var ms = Duration.fromMillis(
+        Math.min(
+          this.monthInfo.DeltaWorkTime.toMillis(),
+          Duration.fromObject({ hour: 8 })
+            .minus(lastWorkedDay.duration)
+            .toMillis()
+        )
+      );
 
-      const begin = DateTime.now()?.minus(this.todayData.toMillis())
-      const end = begin.plus(ms)
+      const begin = DateTime.now()?.minus(this.todayData.toMillis());
+      const end = begin.plus(ms);
       data.push({
         x: this.todayData.toISO(),
-        y: [
-            begin,
-            end
-          ],
+        y: [begin, end],
         total: ms,
-        background: CanvasUtils.createDiagonalStripePattern(ctx, 'rgba(140, 192, 224, 1)', 20, 0.5)
-      })
+        background: CanvasUtils.createDiagonalStripePattern(
+          ctx,
+          "rgba(140, 192, 224, 1)",
+          20,
+          0.5
+        ),
+      });
     }
     return data;
   }
@@ -163,13 +179,16 @@ export class MainChart {
     return undefined as unknown as ChartType;
   }
 
-  backgroundColorFactory:((ctx: ScriptableContext<"bar">, options: AnyObject) => Color | undefined) = (context) => {
-    const bar = context.raw as IHasBackground
-    return bar.background
+  backgroundColorFactory: (
+    ctx: ScriptableContext<"bar">,
+    options: AnyObject
+  ) => Color | undefined = (context) => {
+    const bar = context.raw as IHasBackground;
+    return bar.background;
   };
 
-  datasets(){
-    const datesets = []
+  datasets() {
+    const datesets = [];
   }
 
   data = (canvasContext: CanvasRenderingContext2D) => {
