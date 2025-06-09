@@ -109,7 +109,7 @@ export class MainChart {
         background: CanvasUtils.createDiagonalStripePattern(
           ctx,
           "rgba(140, 192, 224, 1)",
-          20,
+          12,
           0.5
         ),
       });
