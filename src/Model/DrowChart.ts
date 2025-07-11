@@ -62,6 +62,18 @@ export class MainChart {
     return this.monthInfo.days;
   }
 
+  static private dateTimeWithoutDay(date: DateTime)
+  {
+    const { year, month } = date.now();
+    return DateTime.fromObject({year, month});
+  }
+
+  private CheckCurrentYear(date: DateTime) {
+    const currentYM = MainChart.dateTimeWithoutDay(DateTime.now());
+    const dateYM = MainChart.dateTimeWithoutDay(date);
+    return dateYM == currentYM
+  }
+
   private workedRanges(ctx: CanvasRenderingContext2D) {
     var data: {
       y: (DateTime | undefined)[];
@@ -85,7 +97,7 @@ export class MainChart {
       });
     });
 
-    if (this.monthInfo.DeltaWorkTime.toMillis() > 0) {
+    if (this.monthInfo.DeltaWorkTime.toMillis() > 0 && this.CheckCurrentYear(this.monthInfo.days[0].date)) {
       var lastWorkedDay =
         this.monthInfo.days
           .filter(
