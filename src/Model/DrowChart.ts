@@ -38,6 +38,8 @@ export class MainChart {
       .filter((day) => day.duration.toMillis() > 0)
       .map((day) => day.mergedRanges[0].begin?.diff(day.date))
       .sort()[0];
+
+    minRange = minRange === undefined || minRange > MainChart.baseStart ? MainChart.baseStart : minRange;
     this.lowerLimit = (minRange ?? MainChart.baseStart).minus(
       MainChart.spaceOffsetDuration
     );
@@ -49,6 +51,8 @@ export class MainChart {
       )
       .filter((dur) => dur !== undefined)
       .sort((l, r) => r.minus(l).toMillis())[0];
+    
+    maxRange = maxRange < MainChart.baseEnd ? MainChart.baseEnd : maxRange;
     this.upperLimit = (maxRange ?? MainChart.baseEnd).plus(
       MainChart.spaceOffsetDuration
     );
