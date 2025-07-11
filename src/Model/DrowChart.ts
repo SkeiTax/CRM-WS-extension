@@ -62,9 +62,9 @@ export class MainChart {
     return this.monthInfo.days;
   }
 
-  static private dateTimeWithoutDay(date: DateTime)
+  private static dateTimeWithoutDay(date: DateTime)
   {
-    const { year, month } = date.now();
+    const { year, month } = date;
     return DateTime.fromObject({year, month});
   }
 
