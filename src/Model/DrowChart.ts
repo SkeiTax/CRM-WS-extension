@@ -71,7 +71,7 @@ export class MainChart {
   private CheckCurrentYear(date: DateTime) {
     const currentYM = MainChart.dateTimeWithoutDay(DateTime.now());
     const dateYM = MainChart.dateTimeWithoutDay(date);
-    return dateYM == currentYM
+    return dateYM.toMillis() == currentYM.toMillis()
   }
 
   private workedRanges(ctx: CanvasRenderingContext2D) {
