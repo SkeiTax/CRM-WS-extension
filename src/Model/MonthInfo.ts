@@ -101,6 +101,7 @@ export class MonthInfo {
       var breakDuration = Duration.fromMillis(0);
 
       var divs = element.querySelectorAll("div.ai-start");
+      isWeekend = isWeekend || ((divs.length > 0 && (divs[divs.length - 1] as HTMLElement).textContent?.includes("Отпуск")) ?? false)
       if (
         divs.length > 0 &&
         ((divs[divs.length - 1] as HTMLElement).textContent?.includes(
@@ -122,7 +123,7 @@ export class MonthInfo {
       var cday = this.days.findLast((day) => day.number == DateTime.now().day);
       if (cday != undefined) {
         cday.sessions.forEach((session) => {
-          if (session.ranges === undefined) return;
+          if (session.ranges === undefined || session.ranges.length === 0) return;
           if (session.ranges[session.ranges.length - 1].end === undefined) {
             session.ranges[session.ranges.length - 1].end = DateTime.now();
           }
