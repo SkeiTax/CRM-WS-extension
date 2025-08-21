@@ -101,7 +101,7 @@ export class MonthInfo {
       var breakDuration = Duration.fromMillis(0);
 
       var divs = element.querySelectorAll("div.ai-start");
-      isWeekend = isWeekend || ((divs.length > 0 && (divs[divs.length - 1] as HTMLElement).textContent?.includes("Отпуск")) ?? false)
+      isWeekend = isWeekend || ((divs.length > 0 && (divs[0] as HTMLElement).textContent?.includes("Отпуск")) ?? false)
       if (
         divs.length > 0 &&
         ((divs[divs.length - 1] as HTMLElement).textContent?.includes(
