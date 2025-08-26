@@ -4,6 +4,14 @@ import { StoredProperty } from "./StoredProperty";
 export class IsDayOffCollection
 {
     private static cache = new StoredProperty("working-сalendar", [] as WorkDayInfo[]);
+
+    private static get Cache() {
+        return this.cache.value.map((e)=> new WorkDayInfo().clon(e))
+    }
+    private static set Cache(value) {
+        this.cache.value = value.sort((a,b)=>b.Date.diff(a.Date).toMillis());
+    }
+
     private async getdata(year: number, month: number)
     {
         const data = await IsDayOffApi.getdata({year: year, month: month, pre: true});
@@ -13,7 +21,7 @@ export class IsDayOffCollection
     public async WorkDayType(date: DateTime)
     {
         const onlyDate = DateTime.fromObject({year: date.year, month: date.month, day: date.day})
-        const _cache = IsDayOffCollection.cache.value;
+        const _cache = IsDayOffCollection.Cache;
         const findedInfo = _cache.find((workDayInfo) => workDayInfo.Date.diff(onlyDate).toMillis() == 0);
         if (findedInfo !== undefined) 
             return findedInfo.Type;
@@ -24,7 +32,7 @@ export class IsDayOffCollection
             if (findedInfo === undefined) 
                 _cache.push(e);
         })
-        IsDayOffCollection.cache.value = _cache;
+        IsDayOffCollection.Cache = _cache;
         return _cache.find((workDayInfo) => workDayInfo.Date.diff(onlyDate).toMillis() == 0);
     }
 }
@@ -110,11 +118,25 @@ export class WorkDayInfo
     get Type(){ return Number(this.type) as WorkDayType; };
     set Type(value){ this.type = value.toString()};
 
-    constructor(addedDate: DateTime, date: DateTime, type: WorkDayType)
+    constructor(addedDate?: DateTime, date?: DateTime, type?: WorkDayType)
     {
-        this.AddedDate = addedDate;
-        this.Date = date;
-        this.Type = type;
+        if (addedDate !== undefined) {
+            this.AddedDate = addedDate;
+        }
+        if (date !== undefined) {
+            this.Date = date;
+        }
+        if (type !== undefined) {
+            this.Type = type;
+        }
+    }
+
+    public clon(object: any)
+    {
+        this.addedDate = object.addedDate;
+        this.date = object.date;
+        this.type = object.type;
+        return this;
     }
 }
 

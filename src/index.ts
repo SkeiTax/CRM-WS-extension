@@ -30,7 +30,7 @@ class CRME {
 
     this.monthInfo = new MonthInfo(table, filterDate);
     
-    CRME.isDayOffCollection.WorkDayType(DateTime.now());
+    console.log(CRME.isDayOffCollection.WorkDayType(DateTime.now()));
 
     var mainDiv = await waitForElm("#MainDiv");
 
