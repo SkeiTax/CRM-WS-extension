@@ -5,6 +5,7 @@ import { createApp } from "vue";
 import "../resources/style.css";
 import Root from "./Layouts/Root.vue";
 import { WorkTimeVM } from "./Model/WorkTimeVM";
+import { IsDayOffCollection } from "./Domain/IsDayOffCollection";
 
 console.log("Hello user!");
 
@@ -19,6 +20,7 @@ function GetFilterDate() {
 
 class CRME {
   public monthInfo?: MonthInfo;
+  public static isDayOffCollection = new IsDayOffCollection();
 
   constructor() {}
 
@@ -27,6 +29,8 @@ class CRME {
     var filterDate = GetFilterDate();
 
     this.monthInfo = new MonthInfo(table, filterDate);
+    
+    CRME.isDayOffCollection.WorkDayType(DateTime.now());
 
     var mainDiv = await waitForElm("#MainDiv");
 
